@@ -169,6 +169,10 @@ The production measurements are on ten and fifteen queries over private corpora 
 
 Log, per query, each retriever's row count and the maximum fused score. If the maximum sits at $1/k$ (or $1/(k+1)$ for one-based ranks) on more than a few queries, then with per-retriever depth $K \le k$ the retrievers are not agreeing on anything, and at greater depth they are not agreeing near the top; read the row counts to learn whether one of them is empty, nearly empty, or retrieving from a different part of the corpus, and at greater depth count shared documents directly. Test the keyword builder with a conversational sentence, not a two-word term, and treat zero rows for a six-word query as something to explain, since a legitimately selective query can return nothing. And if your fusion scores look ``flat'', compute $1/(k+r+1)$ before concluding anything about fusion.
 
+\section*{Use of AI tools}
+
+The code, the experiment and audit scripts, and the text of this paper were drafted with Claude (Anthropic) running in Claude Code, directed by the author, who operated the production system in which the incident occurred, chose what to measure, ruled on every claim and takes responsibility for all content. Drafts were reviewed by GPT-6 (Astra and Sol) and SWE-2 through Cognition's Devin CLI, by DeepSeek V4.1 Flash and GPT-5.6, and by Gemini; every defect a reviewer reported was reproduced or refuted by a script before it changed the paper, and the review records, probes and the audit script that checks every number in the text against the result files are in the repository. Every reference was checked against a primary listing.
+
 \bibliographystyle{plainnat}
 \bibliography{refs}
 
