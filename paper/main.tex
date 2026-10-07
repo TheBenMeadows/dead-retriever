@@ -56,7 +56,11 @@ The keyword query builder was
 \begin{verbatim}
 fq = " ".join(f'"{t}"' for t in tokens)
 \end{verbatim}
-which, for the query \emph{how do I fix the empty feed}, produced \verb|"how" "do" "i" "fix" "the" "empty" "feed"|. FTS5 reads a sequence of phrases separated by whitespace as an implicit AND \citep[\S 3]{sqlite_fts5}: every quoted token must occur in the same row. Rows here were 1\,400-character chunks, so a six-token conversational query almost never matched. Two- or three-token technical queries did match, which is why spot checks during development passed, and an FTS5 syntax error was caught and ignored, so a malformed query also returned nothing without a trace. The vector retriever returns exactly $K$ results for any query, so result lists were always full.
+which, for the query \emph{how do I fix the empty feed}, produced
+\begin{verbatim}
+"how" "do" "i" "fix" "the" "empty" "feed"
+\end{verbatim}
+FTS5 reads a sequence of phrases separated by whitespace as an implicit AND \citep[\S 3]{sqlite_fts5}: every quoted token must occur in the same row. Rows here were 1\,400-character chunks, so a six-token conversational query almost never matched. Two- or three-token technical queries did match, which is why spot checks during development passed, and an FTS5 syntax error was caught and ignored, so a malformed query also returned nothing without a trace. The vector retriever returns exactly $K$ results for any query, so result lists were always full.
 
 The fix has two parts, and the second is not cosmetic. Tokens are joined with \verb|OR| and ranked by BM25; a raw OR over all tokens matched about 100\,000 chunks and cost 161\,ms per query, so stopwords and tokens shorter than three characters are dropped first, after which a typical query matches about 3\,500 chunks in 2 to 4\,ms. If a query is all stopwords, the raw tokens are used.
 
