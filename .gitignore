@@ -1,0 +1,5 @@
+cache/
+results/*.npy
+__pycache__/
+*.pyc
+.venv/
