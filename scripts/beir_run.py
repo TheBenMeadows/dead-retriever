@@ -1,7 +1,15 @@
 #!/opt/homebrew/bin/uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["ir_datasets", "sentence-transformers", "pytrec_eval", "numpy", "einops"]
+# dependencies = ["ir_datasets", "sentence-transformers", "pytrec_eval", "numpy", "einops", "torch"]
+#
+# [[tool.uv.index]]
+# name = "pytorch-cpu"
+# url = "https://download.pytorch.org/whl/cpu"
+# explicit = true
+#
+# [tool.uv.sources]
+# torch = { index = "pytorch-cpu" }
 # ///
 """Run the dead-retriever conditions on one BEIR test split and write metrics.
 
