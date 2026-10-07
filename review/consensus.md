@@ -75,3 +75,20 @@ Not a performance paper. Per-condition mean query time added to the runner so th
 1. Rerun (in progress) → fill Tables 2/3 with instruction-corrected bge numbers, the `bm25_or_raw` row and timings; replace A6's sentence with the per-query facts.
 2. Re-run `orrery-audit.py` (extend it to Table 1 via the aggregates file and to the per-query claims).
 3. ai-lint pass; recompile; serve; second council round only on §2 and §6 if the rewrite changed the argument's shape.
+
+---
+
+# Round 2: 2 lanes on Sections 2 and 6 of draft 2 (2026-10-07)
+
+| Lane | Route | Result |
+|---|---|---|
+| GPT-6 Sol | `council-devin.sh gpt-6-sol-high`, inline brief | `review_round2_devin-gpt-6-sol-high.md` 4.6 KB |
+| DeepSeek Flash | `council-ccx.sh deepseek-flash`, inline brief | `review_round2_deepseek-flash.md` 4.7 KB |
+
+**Verified and fixed.** (1) "With more than two retrievers the test detects at most one live leg" was false: three pairwise-disjoint live lists also hit the ceiling (both lanes). (2) The always-true one-sided direction, max > 1/k implies overlap for any K, was missing (both). (3) "Fingerprint of a single list" at K > k over-claimed (both). (4) "False positives" named the excess over the empty-leg set inconsistently with "the alarm was literally right" (both); now stated as two readings of one quantity. (5) The effectiveness paragraph switched baselines (and→or vs dense→or) mid-claim, and "barely with nomic (0.344 against 0.347)" described a decrease (both); rewritten with both comparisons stated separately. (6) "There hybrid-and differs from dense by…" assigned whole-collection differences to the 159-query subset (Sol); reworded. (7) The BM25-at-its-best mechanism was asserted, not measured (both); labelled as untested. (8) "No more effective" for raw OR now says nDCG@10 and gives Recall@100 (Sol). Prose cuts applied: "the fusion is not fusing", "what the test costs / what it buys", "literally right", "this system had neither", the duplicated leg/effectiveness announcement.
+
+**The experiment both lanes asked for** (the detector's operating characteristic against live-list length) was run: `scripts/sweep_live_list.py`, results in `results/*.sweep.json`, Table 4 in the paper. Fired rate equals disjoint rate in all 56 cells; the K > k leak never occurred in 17,880 live-leg runs.
+
+**Relevance verdict (item 4), both lanes:** worth posting as an arXiv preprint; not a SIGIR/ECIR full paper; plausible at a short-paper, industry, or reproducibility track; audience is practitioners running hybrid BM25+dense retrieval or RAG. DeepSeek: "short, honest, memorable." Sol: "a useful failure case and an elementary RRF diagnostic, not a new fusion method."
+
+**Not adopted.** Sol's request for per-query effectiveness on the 159 live NFCorpus queries: pytrec_eval per-query metrics are not persisted; the sentence was reworded instead of extending the runner again.

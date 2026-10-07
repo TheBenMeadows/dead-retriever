@@ -1,0 +1,128 @@
+{
+ "dataset": "beir/nfcorpus/test",
+ "model": "BAAI/bge-base-en-v1.5",
+ "rrf_k": 60,
+ "n_queries": 323,
+ "cells": [
+  {
+   "K": 60,
+   "n": 1,
+   "live_queries": 298,
+   "fired_rate": 0.15100671140939598,
+   "disjoint_rate": 0.15100671140939598,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 2,
+   "live_queries": 298,
+   "fired_rate": 0.09060402684563758,
+   "disjoint_rate": 0.09060402684563758,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 3,
+   "live_queries": 298,
+   "fired_rate": 0.06040268456375839,
+   "disjoint_rate": 0.06040268456375839,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 5,
+   "live_queries": 298,
+   "fired_rate": 0.03691275167785235,
+   "disjoint_rate": 0.03691275167785235,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 10,
+   "live_queries": 298,
+   "fired_rate": 0.02348993288590604,
+   "disjoint_rate": 0.02348993288590604,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 20,
+   "live_queries": 298,
+   "fired_rate": 0.016778523489932886,
+   "disjoint_rate": 0.016778523489932886,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 50,
+   "live_queries": 298,
+   "fired_rate": 0.013422818791946308,
+   "disjoint_rate": 0.013422818791946308,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 1,
+   "live_queries": 298,
+   "fired_rate": 0.11073825503355705,
+   "disjoint_rate": 0.11073825503355705,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 2,
+   "live_queries": 298,
+   "fired_rate": 0.06040268456375839,
+   "disjoint_rate": 0.06040268456375839,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 3,
+   "live_queries": 298,
+   "fired_rate": 0.03355704697986577,
+   "disjoint_rate": 0.03355704697986577,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 5,
+   "live_queries": 298,
+   "fired_rate": 0.020134228187919462,
+   "disjoint_rate": 0.020134228187919462,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 10,
+   "live_queries": 298,
+   "fired_rate": 0.010067114093959731,
+   "disjoint_rate": 0.010067114093959731,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 20,
+   "live_queries": 298,
+   "fired_rate": 0.010067114093959731,
+   "disjoint_rate": 0.010067114093959731,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 50,
+   "live_queries": 298,
+   "fired_rate": 0.010067114093959731,
+   "disjoint_rate": 0.010067114093959731,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 100,
+   "live_queries": 298,
+   "fired_rate": 0.010067114093959731,
+   "disjoint_rate": 0.010067114093959731,
+   "fired_with_overlap_rate": 0.0
+  }
+ ]
+}

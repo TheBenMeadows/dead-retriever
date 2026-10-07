@@ -1,0 +1,128 @@
+{
+ "dataset": "beir/scifact/test",
+ "model": "BAAI/bge-base-en-v1.5",
+ "rrf_k": 60,
+ "n_queries": 300,
+ "cells": [
+  {
+   "K": 60,
+   "n": 1,
+   "live_queries": 300,
+   "fired_rate": 0.08666666666666667,
+   "disjoint_rate": 0.08666666666666667,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 2,
+   "live_queries": 300,
+   "fired_rate": 0.05333333333333334,
+   "disjoint_rate": 0.05333333333333334,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 3,
+   "live_queries": 300,
+   "fired_rate": 0.02666666666666667,
+   "disjoint_rate": 0.02666666666666667,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 5,
+   "live_queries": 300,
+   "fired_rate": 0.013333333333333334,
+   "disjoint_rate": 0.013333333333333334,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 10,
+   "live_queries": 300,
+   "fired_rate": 0.01,
+   "disjoint_rate": 0.01,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 20,
+   "live_queries": 300,
+   "fired_rate": 0.01,
+   "disjoint_rate": 0.01,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 60,
+   "n": 50,
+   "live_queries": 300,
+   "fired_rate": 0.0033333333333333335,
+   "disjoint_rate": 0.0033333333333333335,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 1,
+   "live_queries": 300,
+   "fired_rate": 0.05333333333333334,
+   "disjoint_rate": 0.05333333333333334,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 2,
+   "live_queries": 300,
+   "fired_rate": 0.016666666666666666,
+   "disjoint_rate": 0.016666666666666666,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 3,
+   "live_queries": 300,
+   "fired_rate": 0.01,
+   "disjoint_rate": 0.01,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 5,
+   "live_queries": 300,
+   "fired_rate": 0.006666666666666667,
+   "disjoint_rate": 0.006666666666666667,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 10,
+   "live_queries": 300,
+   "fired_rate": 0.006666666666666667,
+   "disjoint_rate": 0.006666666666666667,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 20,
+   "live_queries": 300,
+   "fired_rate": 0.0,
+   "disjoint_rate": 0.0,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 50,
+   "live_queries": 300,
+   "fired_rate": 0.0,
+   "disjoint_rate": 0.0,
+   "fired_with_overlap_rate": 0.0
+  },
+  {
+   "K": 100,
+   "n": 100,
+   "live_queries": 300,
+   "fired_rate": 0.0,
+   "disjoint_rate": 0.0,
+   "fired_with_overlap_rate": 0.0
+  }
+ ]
+}

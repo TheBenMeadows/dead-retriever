@@ -179,7 +179,57 @@ def check_prose_beir():
     check("abstract: ceiling rate within one percentage point of empty rate", worst < 0.01, f"worst {100*worst:.2f} pp")
 
 
+def check_sweep():
+    sweeps = {p.name: json.loads(p.read_text()) for p in (ROOT / "results").glob("*.sweep.json")}
+    check("sweep: four files", len(sweeps) == 4, f"{len(sweeps)}")
+    cells = runs = 0
+    eq = leak0 = True
+    for s in sweeps.values():
+        for c in s["cells"]:
+            cells += 1
+            runs += c["live_queries"]
+            eq &= abs(c["fired_rate"] - c["disjoint_rate"]) < 1e-12
+            leak0 &= c["fired_with_overlap_rate"] == 0.0
+    check("sweep: 60 cells and 17,940 live-leg runs", cells == 60 and runs == 17940, f"{cells} cells, {runs} runs")
+    check("sweep: fired rate equals disjoint rate in every cell", eq, "")
+    check("sweep: ceiling never fired with overlap present", leak0, "")
+    bge = {coll: sweeps[f"{COLL[coll]}__{ENC['bge']}.sweep.json"] for coll in COLL}
+    rows = {r[0]: r for r in table_rows("\\label{tab:sweep}") if r[0].strip().isdigit()}
+    for coll_i, coll in enumerate(COLL):
+        for c in bge[coll]["cells"]:
+            cell = rows[str(c["n"])][1 + 2 * coll_i + (0 if c["K"] == 60 else 1)]
+            check(f"sweep table {coll} n={c['n']} K={c['K']}", shown(cell, 100 * c["fired_rate"]), f"json {100*c['fired_rate']:.2f}% vs tex {cell}")
+    # Prose ranges at n = 1, 3, 10 and >= 20, over both encoders, K = 60 for the first three.
+    def rates(n, K):
+        return [c["fired_rate"] for s in sweeps.values() for c in s["cells"] if c["n"] == n and c["K"] == K]
+    check("prose: n=1 shares nothing on 9-15% (K=60)", 0.085 <= min(rates(1, 60)) and max(rates(1, 60)) <= 0.155, f"{[round(100*r,1) for r in rates(1,60)]}")
+    check("prose: n=3 on 3-7% (K=60)", 0.025 <= min(rates(3, 60)) and max(rates(3, 60)) <= 0.075, f"{[round(100*r,1) for r in rates(3,60)]}")
+    check("prose: n=10 on 1-2% (K=60)", 0.005 <= min(rates(10, 60)) and max(rates(10, 60)) <= 0.025, f"{[round(100*r,1) for r in rates(10,60)]}")
+    big = [c["fired_rate"] for s in sweeps.values() for c in s["cells"] if c["n"] >= 20]
+    check("prose: n>=20 at most 1.7%, usually under 1%", max(big) <= 0.0175 and sum(1 for r in big if r < 0.01) > len(big) / 2, f"max {100*max(big):.1f}%, under 1%: {sum(1 for r in big if r < 0.01)}/{len(big)}")
+    deeper = all(c100["fired_rate"] <= c60["fired_rate"] for s in sweeps.values()
+                 for c60 in s["cells"] if c60["K"] == 60 for c100 in s["cells"] if c100["K"] == 100 and c100["n"] == c60["n"])
+    check("prose: a deeper dense list lowers every figure", deeper, "")
+    nom = {coll: sweeps[f"{COLL[coll]}__{ENC['nomic']}.sweep.json"] for coll in COLL}
+    d1 = max(abs(a["fired_rate"] - b["fired_rate"]) for coll in COLL for a in bge[coll]["cells"] for b in nom[coll]["cells"] if a["n"] == b["n"] == 1 and a["K"] == b["K"])
+    d3 = max(abs(a["fired_rate"] - b["fired_rate"]) for coll in COLL for a in bge[coll]["cells"] for b in nom[coll]["cells"] if a["n"] == b["n"] >= 3 and a["K"] == b["K"])
+    check("caption: nomic within 4.4 points at n=1 and 1.0 point from n=3", d1 <= 0.044 and d3 <= 0.010, f"{100*d1:.1f} {100*d3:.1f}")
+
+
+def check_prose_round2():
+    b_sf, b_nf = {c: cond("bge", "SciFact", c) for c in ("dense", "hybrid_and", "hybrid_or", "bm25_or", "bm25_or_raw")}, {c: cond("bge", "NFCorpus", c) for c in ("dense", "hybrid_and", "hybrid_or", "bm25_or", "bm25_or_raw")}
+    n_sf, n_nf = {c: cond("nomic", "SciFact", c) for c in ("dense", "hybrid_and", "hybrid_or")}, {c: cond("nomic", "NFCorpus", c) for c in ("dense", "hybrid_and", "hybrid_or")}
+    check("prose: shared docs 4.0 -> 21.3 on NFCorpus (bge)", round(b_nf["hybrid_and"]["multi_leg_docs_mean"], 1) == 4.0 and round(b_nf["hybrid_or"]["multi_leg_docs_mean"], 1) == 21.3, "")
+    check("prose: and->or R@100 nomic 0.303 -> 0.309 (NFCorpus)", round(n_nf["hybrid_and"]["recall_100"], 3) == 0.303 and round(n_nf["hybrid_or"]["recall_100"], 3) == 0.309, "")
+    check("prose: and->or R@100 bge +0.003 (SciFact) and -0.004 (NFCorpus)", round(b_sf["hybrid_or"]["recall_100"] - b_sf["hybrid_and"]["recall_100"], 3) == 0.003 and round(b_nf["hybrid_or"]["recall_100"] - b_nf["hybrid_and"]["recall_100"], 3) == -0.004, "")
+    check("prose: nomic repaired hybrid within 0.005 of dense at nDCG@10 either way", abs(n_sf["hybrid_or"]["ndcg_cut_10"] - n_sf["dense"]["ndcg_cut_10"]) <= 0.005 and abs(n_nf["hybrid_or"]["ndcg_cut_10"] - n_nf["dense"]["ndcg_cut_10"]) <= 0.005, "")
+    check("prose: nomic R@100 over dense +0.030 and +0.011", round(n_sf["hybrid_or"]["recall_100"] - n_sf["dense"]["recall_100"], 3) == 0.030 and round(n_nf["hybrid_or"]["recall_100"] - n_nf["dense"]["recall_100"], 3) == 0.011, "")
+    check("prose: raw OR R@100 within 0.004 of OR either way", abs(b_sf["bm25_or_raw"]["recall_100"] - b_sf["bm25_or"]["recall_100"]) <= 0.004 and abs(b_nf["bm25_or_raw"]["recall_100"] - b_nf["bm25_or"]["recall_100"]) <= 0.004, "")
+
+
 def main():
+    check_sweep()
+    check_prose_round2()
     check_beir_table("\\label{tab:beir}", "bge")
     check_beir_table("\\label{tab:nomic}", "nomic")
     check_table1()
