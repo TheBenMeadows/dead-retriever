@@ -3,3 +3,7 @@ results/*.npy
 __pycache__/
 *.pyc
 .venv/
+paper/main.aux
+paper/main.blg
+paper/main.log
+paper/main.out

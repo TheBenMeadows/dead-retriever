@@ -1,0 +1,162 @@
+\begin{thebibliography}{22}
+\providecommand{\natexlab}[1]{#1}
+\providecommand{\url}[1]{\texttt{#1}}
+\expandafter\ifx\csname urlstyle\endcsname\relax
+  \providecommand{\doi}[1]{doi: #1}\else
+  \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
+
+\bibitem[{Anthropic}(2024)]{anthropic2024contextual}
+{Anthropic}.
+\newblock Introducing contextual retrieval.
+\newblock \url{https://www.anthropic.com/engineering/contextual-retrieval},
+  2024.
+\newblock Accessed 2026-10-07.
+
+\bibitem[Boteva et~al.(2016)Boteva, Ghalandari, Sokolov, and
+  Riezler]{boteva2016nfcorpus}
+Vera Boteva, Demian~Gholipour Ghalandari, Artem Sokolov, and Stefan Riezler.
+\newblock A full-text learning to rank dataset for medical information
+  retrieval.
+\newblock In \emph{Advances in Information Retrieval: 38th European Conference
+  on {IR} Research}, pages 716--722, 2016.
+
+\bibitem[Bruch et~al.(2024)Bruch, Gai, and Ingber]{bruch2023fusion}
+Sebastian Bruch, Siyu Gai, and Amir Ingber.
+\newblock An analysis of fusion functions for hybrid retrieval.
+\newblock \emph{{ACM} Transactions on Information Systems}, 42\penalty0
+  (1):\penalty0 20:1--20:35, 2024.
+
+\bibitem[Cooper(1998)]{cooper1998monitoring}
+Michael~D. Cooper.
+\newblock Design considerations in instrumenting and monitoring {Web}-based
+  information retrieval systems.
+\newblock \emph{Journal of the American Society for Information Science},
+  49\penalty0 (10):\penalty0 903--919, 1998.
+
+\bibitem[Cormack et~al.(2009)Cormack, Clarke, and B{\"u}ttcher]{cormack2009rrf}
+Gordon~V. Cormack, Charles L.~A. Clarke, and Stefan B{\"u}ttcher.
+\newblock Reciprocal rank fusion outperforms {Condorcet} and individual rank
+  learning methods.
+\newblock In \emph{Proceedings of the 32nd International {ACM} {SIGIR}
+  Conference on Research and Development in Information Retrieval}, pages
+  758--759, 2009.
+
+\bibitem[Cronen-Townsend et~al.(2002)Cronen-Townsend, Zhou, and
+  Croft]{cronentownsend2002qpp}
+Steve Cronen-Townsend, Yun Zhou, and W.~Bruce Croft.
+\newblock Predicting query performance.
+\newblock In \emph{Proceedings of the 25th Annual International {ACM} {SIGIR}
+  Conference on Research and Development in Information Retrieval}, pages
+  299--306, 2002.
+
+\bibitem[Fox and Shaw(1994)]{fox1994combination}
+Edward~A. Fox and Joseph~A. Shaw.
+\newblock Combination of multiple searches.
+\newblock In \emph{Proceedings of the Second Text REtrieval Conference
+  ({TREC-2})}, pages 243--252, 1994.
+
+\bibitem[Gao et~al.(2021)Gao, Dai, Chen, Fan, {Van Durme}, and
+  Callan]{gao2021clear}
+Luyu Gao, Zhuyun Dai, Tongfei Chen, Zhen Fan, Benjamin {Van Durme}, and Jamie
+  Callan.
+\newblock Complement lexical retrieval model with semantic residual embeddings.
+\newblock In \emph{Advances in Information Retrieval: 43rd European Conference
+  on {IR} Research}, pages 146--160, 2021.
+
+\bibitem[Hipp et~al.(2026)]{sqlite_fts5}
+D.~Richard Hipp et~al.
+\newblock {SQLite FTS5} extension.
+\newblock \url{https://www.sqlite.org/fts5.html}, 2026.
+\newblock Accessed 2026-10-07.
+
+\bibitem[Kamphuis et~al.(2020)Kamphuis, de~Vries, Boytsov, and
+  Lin]{kamphuis2020bm25}
+Chris Kamphuis, Arjen~P. de~Vries, Leonid Boytsov, and Jimmy Lin.
+\newblock Which {BM25} do you mean? a large-scale reproducibility study of
+  scoring variants.
+\newblock In \emph{Advances in Information Retrieval: 42nd European Conference
+  on {IR} Research}, pages 28--34, 2020.
+
+\bibitem[Lee(1997)]{lee1997analyses}
+Joon~Ho Lee.
+\newblock Analyses of multiple evidence combination.
+\newblock In \emph{Proceedings of the 20th Annual International {ACM} {SIGIR}
+  Conference on Research and Development in Information Retrieval}, pages
+  267--276, 1997.
+
+\bibitem[Luan et~al.(2021)Luan, Eisenstein, Toutanova, and
+  Collins]{luan2021sparse}
+Yi~Luan, Jacob Eisenstein, Kristina Toutanova, and Michael Collins.
+\newblock Sparse, dense, and attentional representations for text retrieval.
+\newblock \emph{Transactions of the Association for Computational Linguistics},
+  9:\penalty0 329--345, 2021.
+
+\bibitem[MacAvaney et~al.(2021)MacAvaney, Yates, Feldman, Downey, Cohan, and
+  Goharian]{macavaney2021irdatasets}
+Sean MacAvaney, Andrew Yates, Sergey Feldman, Doug Downey, Arman Cohan, and
+  Nazli Goharian.
+\newblock Simplified data wrangling with ir\_datasets.
+\newblock In \emph{Proceedings of the 44th International {ACM} {SIGIR}
+  Conference on Research and Development in Information Retrieval}, pages
+  2429--2436, 2021.
+
+\bibitem[Montague and Aslam(2001)]{montague2001normalization}
+Mark Montague and Javed~A. Aslam.
+\newblock Relevance score normalization for metasearch.
+\newblock In \emph{Proceedings of the Tenth International Conference on
+  Information and Knowledge Management}, pages 427--433, 2001.
+
+\bibitem[Nogueira et~al.(2019)Nogueira, Yang, Lin, and
+  Cho]{nogueira2019doc2query}
+Rodrigo Nogueira, Wei Yang, Jimmy Lin, and Kyunghyun Cho.
+\newblock Document expansion by query prediction.
+\newblock \emph{arXiv preprint arXiv:1904.08375}, 2019.
+
+\bibitem[Nussbaum et~al.(2024)Nussbaum, Morris, Duderstadt, and
+  Mulyar]{nussbaum2024nomic}
+Zach Nussbaum, John~X. Morris, Brandon Duderstadt, and Andriy Mulyar.
+\newblock Nomic embed: Training a reproducible long context text embedder.
+\newblock \emph{arXiv preprint arXiv:2402.01613}, 2024.
+
+\bibitem[Robertson and Zaragoza(2009)]{robertson2009bm25}
+Stephen Robertson and Hugo Zaragoza.
+\newblock The probabilistic relevance framework: {BM25} and beyond.
+\newblock \emph{Foundations and Trends in Information Retrieval}, 3\penalty0
+  (4):\penalty0 333--389, 2009.
+
+\bibitem[Thakur et~al.(2021)Thakur, Reimers, R{\"u}ckl{\'e}, Srivastava, and
+  Gurevych]{thakur2021beir}
+Nandan Thakur, Nils Reimers, Andreas R{\"u}ckl{\'e}, Abhishek Srivastava, and
+  Iryna Gurevych.
+\newblock {BEIR}: A heterogeneous benchmark for zero-shot evaluation of
+  information retrieval models.
+\newblock In \emph{Thirty-fifth Conference on Neural Information Processing
+  Systems, Datasets and Benchmarks Track}, 2021.
+
+\bibitem[{Van Gysel} and de~Rijke(2018)]{vangysel2018pytrec}
+Christophe {Van Gysel} and Maarten de~Rijke.
+\newblock Pytrec\_eval: An extremely fast python interface to trec\_eval.
+\newblock In \emph{Proceedings of the 41st International {ACM} {SIGIR}
+  Conference on Research and Development in Information Retrieval}, pages
+  873--876, 2018.
+
+\bibitem[Wadden et~al.(2020)Wadden, Lin, Lo, Wang, van Zuylen, Cohan, and
+  Hajishirzi]{wadden2020scifact}
+David Wadden, Shanchuan Lin, Kyle Lo, Lucy~Lu Wang, Madeleine van Zuylen, Arman
+  Cohan, and Hannaneh Hajishirzi.
+\newblock Fact or fiction: Verifying scientific claims.
+\newblock In \emph{Proceedings of the 2020 Conference on Empirical Methods in
+  Natural Language Processing}, pages 7534--7550, 2020.
+
+\bibitem[Webber et~al.(2010)Webber, Moffat, and Zobel]{webber2010rbo}
+William Webber, Alistair Moffat, and Justin Zobel.
+\newblock A similarity measure for indefinite rankings.
+\newblock \emph{{ACM} Transactions on Information Systems}, 28\penalty0
+  (4):\penalty0 20:1--20:38, 2010.
+
+\bibitem[Xiao et~al.(2023)Xiao, Liu, Zhang, and Muennighoff]{xiao2023cpack}
+Shitao Xiao, Zheng Liu, Peitian Zhang, and Niklas Muennighoff.
+\newblock {C-Pack}: Packed resources for general {Chinese} embeddings.
+\newblock \emph{arXiv preprint arXiv:2309.07597}, 2023.
+
+\end{thebibliography}

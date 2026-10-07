@@ -104,3 +104,13 @@ Not a performance paper. Per-condition mean query time added to the runner so th
 **Not a defect:** "the K = k+1 deepest contribution equals 1/k" — the paper gives rank 90 at K = 100 as an example and makes no claim at K = k+1.
 
 Audit extended for every changed figure.
+
+---
+
+# Round 4: author's own hard audit before submission (2026-10-07)
+
+Full read of the draft; every reference checked against a primary listing (`references-check.md`); the FTS5 implicit-AND and unicode61 statements, both encoders' prefixes, the Ollama model version and the transformers incompatibility checked at source; tests, probes, `orrery-audit.py` (163 PASS), `tables.py` output, a clean `tectonic` compile (one benign float-placement warning), ai-lint (HUMAN, 28.9%), leak and dash greps, and a cited-keys-versus-bibliography cross-check all re-run.
+
+Fixed: the Anthropic post's URL (`/engineering/`, not `/news/`); the bge instruction described as "for short queries" (the card says retrieval queries); the transformers note (incompatibility is with 5.0; the pin below 4.50 is conservative); two figures of speech; "232 live legs" (the count is query runs across two encoders); the unused HyDE entry removed; README brought up to date and passed through `ai-tells` (PASS, 4.9 alerts per 1k words).
+
+Remaining before posting: the repository URL placeholder (waits on the repo going public); the `.bbl` is generated beside `main.tex` for the arXiv upload, since arXiv does not run BibTeX.
