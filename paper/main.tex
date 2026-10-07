@@ -19,7 +19,7 @@
 \maketitle
 
 \begin{abstract}
-A hybrid search system fuses a keyword retriever and a vector retriever with reciprocal rank fusion (RRF). In the system described here, the keyword retriever returned no results for most natural-language queries for several months, and nobody noticed: the vector retriever always filled the result list, and the usual spot checks used short keyword queries, which still matched. The failure was visible the whole time in the fused scores. RRF credits a document $1/(k+r)$ from each retriever that ranks it at position $r$, so a document found by only one retriever scores at most $1/k$. When the maximum fused score across a result list is exactly $1/k$, no document was found by more than one retriever; across a set of queries that ceiling is the signature of a retriever that returns nothing, and it can be read from the scores alone. I give the derivation, the bug that caused it (quoting every token of an SQLite FTS5 query, which FTS5 reads as an implicit AND), before-and-after measurements on the production corpus, and two negative results from the same system that the dead leg had confounded. I then reproduce the effect on two public BEIR collections with two encoders: \todo{one-sentence BEIR headline}. Code is at \todo{repository URL}.
+A hybrid search system fuses a keyword retriever and a vector retriever with reciprocal rank fusion (RRF). In the system described here, the keyword retriever returned no results for most natural-language queries for several months, and nobody noticed: the vector retriever always filled the result list, and the usual spot checks used short keyword queries, which still matched. The failure was visible the whole time in the fused scores. RRF credits a document $1/(k+r)$ from each retriever that ranks it at position $r$, so a document found by only one retriever scores at most $1/k$. When the maximum fused score across a result list is exactly $1/k$, no document was found by more than one retriever; across a set of queries that ceiling is the signature of a retriever that returns nothing, and it can be read from the scores alone. I give the derivation, the bug that caused it (quoting every token of an SQLite FTS5 query, which FTS5 reads as an implicit AND), before-and-after measurements on the production corpus, and two negative results from the same system that the dead leg had confounded. I then reproduce the effect on two public BEIR collections with two encoders: the quoted-AND builder returns nothing for 98.0\% of SciFact's sentence queries and 50.8\% of NFCorpus's title queries, the hybrid built on it collapses to dense-only retrieval, and the fraction of queries whose maximum fused score sits at $1/k$ tracks the fraction with an empty keyword leg to within one percentage point. Code, results and this paper's source are at \todo{repository URL}.
 \end{abstract}
 
 \section{The incident}
@@ -74,10 +74,10 @@ The corpus is private; this section reports counts, timings and overlaps, with n
 Queries on which the keyword leg returned any row & 4 / 10 & 10 / 10 \\
 Queries with a document found by both legs & 0 / 10 & 10 / 10 \\
 Maximum fused score over the top 100 results & $1/60 = 0.0167$ & 0.025 -- 0.033 \\
-Keyword leg latency, conversational queries & -- & 2 -- 4\,ms (161\,ms before the stopword drop) \\
+Keyword leg latency, conversational queries & -- & 2 -- 4\,ms \\
 \bottomrule
 \end{tabular}
-\caption{The keyword leg before and after the fix, ten real queries, one production shard. The ``before'' latency is omitted because a query that matches nothing is fast.}
+\caption{The keyword leg before and after the fix, ten real queries, one production shard. The ``before'' latency is omitted because a query that matches nothing is fast; a raw OR without the stopword drop took 161\,ms.}
 \label{tab:prod}
 \end{table}
 
@@ -104,24 +104,26 @@ The conditions are: \textsc{bm25-and} (the buggy builder), \textsc{bm25-or} (the
 \toprule
 Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & both-leg docs \\
 \midrule
-SciFact & bm25-and & \todo{} & \todo{} & \todo{} & -- & -- \\
-SciFact & bm25-or & \todo{} & \todo{} & \todo{} & -- & -- \\
-SciFact & dense & \todo{} & \todo{} & -- & -- & -- \\
-SciFact & hybrid-and & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
-SciFact & hybrid-or & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+SciFact & bm25-and & 0.018 & 0.018 & 98.0\% & -- & -- \\
+SciFact & bm25-or & 0.665 & 0.876 & 0.0\% & -- & -- \\
+SciFact & dense & 0.738 & 0.970 & -- & -- & -- \\
+SciFact & hybrid-and & 0.739 & 0.970 & 98.0\% & 98.0\% & 0.02 \\
+SciFact & hybrid-or & 0.730 & 0.969 & 0.0\% & 0.0\% & 28.4 \\
 \midrule
-NFCorpus & bm25-and & \todo{} & \todo{} & \todo{} & -- & -- \\
-NFCorpus & bm25-or & \todo{} & \todo{} & \todo{} & -- & -- \\
-NFCorpus & dense & \todo{} & \todo{} & -- & -- & -- \\
-NFCorpus & hybrid-and & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
-NFCorpus & hybrid-or & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+NFCorpus & bm25-and & 0.193 & 0.095 & 50.8\% & -- & -- \\
+NFCorpus & bm25-or & 0.306 & 0.233 & 7.7\% & -- & -- \\
+NFCorpus & dense & 0.369 & 0.332 & -- & -- & -- \\
+NFCorpus & hybrid-and & 0.377 & 0.337 & 50.8\% & 51.7\% & 3.9 \\
+NFCorpus & hybrid-or & 0.358 & 0.336 & 7.7\% & 8.4\% & 20.2 \\
 \bottomrule
 \end{tabular}
-\caption{\todo{encoder} on two BEIR test collections. ``kw empty'' is the fraction of queries on which the keyword leg returned no document; ``at ceiling'' the fraction on which the maximum fused score was $1/k$; ``both-leg docs'' the mean number of documents credited by both retrievers. Figures for the second encoder are in the appendix.}
+\caption{\texttt{bge-base-en-v1.5} on two BEIR test collections. ``kw empty'' is the fraction of queries on which the keyword leg returned no document; ``at ceiling'' the fraction on which the maximum fused score was $1/k$; ``both-leg docs'' the mean number of documents credited by both retrievers. The second encoder is in Appendix~\ref{app:nomic}.}
 \label{tab:beir}
 \end{table}
 
-\todo{Two or three sentences reading the table: how often the AND builder returned nothing on sentence queries vs title queries; whether hybrid-and collapsed to dense; the ceiling rate as a detector.}
+Three things are visible in Table~\ref{tab:beir}. First, the builder's failure depends on query length exactly as it did in production: SciFact's claim-length queries matched nothing 98.0\% of the time, NFCorpus's short title queries 50.8\% of the time, and BM25 with the fixed builder is a respectable retriever on both (0.665 and 0.306 nDCG@10). Second, \textsc{hybrid-and} is \textsc{dense} wearing a second name: identical Recall@100 on both collections and nDCG@10 within 0.008, because a fusion with an empty list is the other list. Third, the ceiling detects the empty leg almost exactly. On SciFact the two rates coincide (98.0\% and 98.0\%); on NFCorpus the ceiling fires on 51.7\% of queries against 50.8\% empty, a difference of three queries on which the keyword leg returned documents that happened to share nothing with the dense top 100, and after the fix 8.4\% against 7.7\%, two queries. Those are the false positives of the test on these collections: under one percentage point.
+
+The fix restores the keyword leg; it does not, on these two collections with this encoder, make the hybrid better than dense alone at nDCG@10 (0.730 against 0.738 on SciFact, 0.358 against 0.369 on NFCorpus). With the other encoder (Appendix~\ref{app:nomic}) the hybrid gains three points of Recall@100 on SciFact and is otherwise within noise. Whether RRF over BM25 and a given dense encoder helps is a question \citet{bruch2023fusion} treat at length; the point here is narrower. Before the fix, the question could not even be asked, and the system's own scores had been saying so.
 
 \section{Related work}
 
@@ -140,6 +142,28 @@ Log the maximum fused score per query. If it is $1/k$ more than occasionally, on
 
 \appendix
 \section{Second encoder}
-\todo{Table for the second encoder, same layout as Table~\ref{tab:beir}.}
+\label{app:nomic}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llrrrrr}
+\toprule
+Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & both-leg docs \\
+\midrule
+SciFact & dense & 0.703 & 0.928 & -- & -- & -- \\
+SciFact & hybrid-and & 0.705 & 0.928 & 98.0\% & 98.0\% & 0.02 \\
+SciFact & hybrid-or & 0.708 & 0.958 & 0.0\% & 0.0\% & 25.9 \\
+\midrule
+NFCorpus & dense & 0.347 & 0.298 & -- & -- & -- \\
+NFCorpus & hybrid-and & 0.361 & 0.303 & 50.8\% & 51.7\% & 3.7 \\
+NFCorpus & hybrid-or & 0.344 & 0.309 & 7.7\% & 8.4\% & 21.0 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{nomic-embed-text-v1.5}, same collections and layout as Table~\ref{tab:beir}. The BM25-only rows are encoder-independent and identical to Table~\ref{tab:beir}.}
+\label{tab:nomic}
+\end{table}
+
+\section{Run details}
+Both encoders ran on CPU (12-core x86-64, PyTorch CPU wheels) in about an hour per collection; document embeddings are cached by the runner. \texttt{nomic-embed-text-v1.5} needs \texttt{transformers} below 4.50 because its remote model code calls a method removed in later releases; the runner pins it. Documents were embedded as title and text joined by a space with the encoder's document prefix, queries with its query prefix; both normalised. The FTS5 index holds title and text columns, BM25 with default weights, depth 100 for every retriever.
 
 \end{document}

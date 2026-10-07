@@ -1,0 +1,38 @@
+{
+ "dataset": "beir/nfcorpus/test",
+ "model": "BAAI/bge-base-en-v1.5",
+ "depth": 100,
+ "rrf_k": 60,
+ "n_docs": 3633,
+ "n_queries": 323,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.19328748232833015,
+   "recall_100": 0.09468591006219289,
+   "empty_rate": 0.5077399380804953
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.30593933783412974,
+   "recall_100": 0.23332407907648695,
+   "empty_rate": 0.07739938080495357
+  },
+  "dense": {
+   "ndcg_cut_10": 0.3694588626103973,
+   "recall_100": 0.3320020275338423
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.3769262932355216,
+   "recall_100": 0.33653919286131234,
+   "keyword_empty_rate": 0.5077399380804953,
+   "at_ceiling_rate": 0.5170278637770898,
+   "multi_leg_docs_mean": 3.9071207430340555
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.3582685360214389,
+   "recall_100": 0.3364783344826845,
+   "keyword_empty_rate": 0.07739938080495357,
+   "at_ceiling_rate": 0.08359133126934984,
+   "multi_leg_docs_mean": 20.179566563467493
+  }
+ }
+}
