@@ -202,14 +202,30 @@ def check_sweep():
     # Prose ranges at n = 1, 3, 10 and >= 20, over both encoders, K = 60 for the first three.
     def rates(n, K):
         return [c["fired_rate"] for s in sweeps.values() for c in s["cells"] if c["n"] == n and c["K"] == K]
-    check("prose: n=1 shares nothing on 9-15% (K=60)", 0.085 <= min(rates(1, 60)) and max(rates(1, 60)) <= 0.155, f"{[round(100*r,1) for r in rates(1,60)]}")
-    check("prose: n=3 on 3-7% (K=60)", 0.025 <= min(rates(3, 60)) and max(rates(3, 60)) <= 0.075, f"{[round(100*r,1) for r in rates(3,60)]}")
-    check("prose: n=10 on 1-2% (K=60)", 0.005 <= min(rates(10, 60)) and max(rates(10, 60)) <= 0.025, f"{[round(100*r,1) for r in rates(10,60)]}")
+    def rng(n, K):
+        r = rates(n, K)
+        return round(100 * min(r), 1), round(100 * max(r), 1)
+    check("prose: cap 1 at K=60 is 8.7 to 15.1%", rng(1, 60) == (8.7, 15.1), f"{rng(1,60)}")
+    check("prose: cap 3 at K=60 is 2.7 to 6.7%", rng(3, 60) == (2.7, 6.7), f"{rng(3,60)}")
+    check("prose: cap 10 at K=60 is 0.7 to 2.3%", rng(10, 60) == (0.7, 2.3), f"{rng(10,60)}")
     big = [c["fired_rate"] for s in sweeps.values() for c in s["cells"] if c["n"] >= 20]
-    check("prose: n>=20 at most 1.7%, usually under 1%", max(big) <= 0.0175 and sum(1 for r in big if r < 0.01) > len(big) / 2, f"max {100*max(big):.1f}%, under 1%: {sum(1 for r in big if r < 0.01)}/{len(big)}")
+    check("prose: cap>=20 at most 1.7%, under 1% in 11 of 20 cells", len(big) == 20 and max(big) <= 0.0175 and sum(1 for r in big if r < 0.01) == 11, f"max {100*max(big):.1f}%, under 1%: {sum(1 for r in big if r < 0.01)}/{len(big)}")
     deeper = all(c100["fired_rate"] <= c60["fired_rate"] for s in sweeps.values()
                  for c60 in s["cells"] if c60["K"] == 60 for c100 in s["cells"] if c100["K"] == 100 and c100["n"] == c60["n"])
-    check("prose: a deeper dense list lowers every figure", deeper, "")
+    check("prose: a deeper dense list never raises a figure", deeper, "")
+    # Hidden overlap is possible only when (n-1)(K-1) >= k^2; count those cells and runs, and that the leak is zero there.
+    k = RRF_K
+    leak_cells = [c for s in sweeps.values() for c in s["cells"] if (c["n"] - 1) * (c["K"] - 1) >= k * k]
+    check("prose: hidden overlap possible in 8 cells (K=100, n in {50,100}), 2,392 runs, none observed",
+          len(leak_cells) == 8 and all(c["K"] == 100 and c["n"] in (50, 100) for c in leak_cells)
+          and sum(c["live_queries"] for c in leak_cells) == 2392 and all(c["fired_with_overlap_rate"] == 0.0 for c in leak_cells),
+          f"{len(leak_cells)} cells, {sum(c['live_queries'] for c in leak_cells)} runs")
+    nat = json.loads((ROOT / "results" / "natural_lengths.json").read_text())["buckets"]
+    short = [b for b in nat if b["n_keyword"] in ("1", "2-3")]
+    long_ = [b for b in nat if b["n_keyword"] not in ("1", "2-3")]
+    fs, ts = sum(b["fired"] for b in short), sum(b["total"] for b in short)
+    fl, tl = sum(b["fired"] for b in long_), sum(b["total"] for b in long_)
+    check("prose: natural lengths: 11 of 232 legs with 1-3 docs fired (4.7%), 0 of 1,294 with 4+", fs == 11 and ts == 232 and round(100 * fs / ts, 1) == 4.7 and fl == 0 and tl == 1294, f"{fs}/{ts}, {fl}/{tl}")
     nom = {coll: sweeps[f"{COLL[coll]}__{ENC['nomic']}.sweep.json"] for coll in COLL}
     d1 = max(abs(a["fired_rate"] - b["fired_rate"]) for coll in COLL for a in bge[coll]["cells"] for b in nom[coll]["cells"] if a["n"] == b["n"] == 1 and a["K"] == b["K"])
     d3 = max(abs(a["fired_rate"] - b["fired_rate"]) for coll in COLL for a in bge[coll]["cells"] for b in nom[coll]["cells"] if a["n"] == b["n"] >= 3 and a["K"] == b["K"])

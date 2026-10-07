@@ -1,0 +1,130 @@
+{
+ "buckets": [
+  {
+   "n_keyword": "1",
+   "fired": 2,
+   "total": 88,
+   "rate": 0.022727272727272728
+  },
+  {
+   "n_keyword": "2-3",
+   "fired": 9,
+   "total": 144,
+   "rate": 0.0625
+  },
+  {
+   "n_keyword": "4-9",
+   "fired": 0,
+   "total": 118,
+   "rate": 0.0
+  },
+  {
+   "n_keyword": "10-49",
+   "fired": 0,
+   "total": 164,
+   "rate": 0.0
+  },
+  {
+   "n_keyword": "50-99",
+   "fired": 0,
+   "total": 70,
+   "rate": 0.0
+  },
+  {
+   "n_keyword": "100",
+   "fired": 0,
+   "total": 942,
+   "rate": 0.0
+  }
+ ],
+ "per_file": {
+  "beir_nfcorpus_test__BAAI_bge-base-en-v1.5.perquery.jsonl": {
+   "1": [
+    2,
+    39
+   ],
+   "50-99": [
+    0,
+    35
+   ],
+   "4-9": [
+    0,
+    59
+   ],
+   "10-49": [
+    0,
+    79
+   ],
+   "2-3": [
+    4,
+    71
+   ],
+   "100": [
+    0,
+    174
+   ]
+  },
+  "beir_nfcorpus_test__nomic-ai_nomic-embed-text-v1.5.perquery.jsonl": {
+   "1": [
+    0,
+    39
+   ],
+   "50-99": [
+    0,
+    35
+   ],
+   "4-9": [
+    0,
+    59
+   ],
+   "10-49": [
+    0,
+    79
+   ],
+   "2-3": [
+    5,
+    71
+   ],
+   "100": [
+    0,
+    174
+   ]
+  },
+  "beir_scifact_test__BAAI_bge-base-en-v1.5.perquery.jsonl": {
+   "1": [
+    0,
+    5
+   ],
+   "2-3": [
+    0,
+    1
+   ],
+   "100": [
+    0,
+    297
+   ],
+   "10-49": [
+    0,
+    3
+   ]
+  },
+  "beir_scifact_test__nomic-ai_nomic-embed-text-v1.5.perquery.jsonl": {
+   "1": [
+    0,
+    5
+   ],
+   "2-3": [
+    0,
+    1
+   ],
+   "100": [
+    0,
+    297
+   ],
+   "10-49": [
+    0,
+    3
+   ]
+  }
+ }
+}

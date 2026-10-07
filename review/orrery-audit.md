@@ -1,6 +1,6 @@
 # Orrery audit of paper/main.tex against results/ and dead_retriever/ (log-only)
 
-161 PASS, 0 FAIL
+163 PASS, 0 FAIL
 
 - PASS  sweep: four files  (4)
 - PASS  sweep: 60 cells and 17,940 live-leg runs  (60 cells, 17940 runs)
@@ -36,11 +36,13 @@
 - PASS  sweep table NFCorpus n=20 K=100  (json 1.01% vs tex 1.0\%)
 - PASS  sweep table NFCorpus n=50 K=100  (json 1.01% vs tex 1.0\%)
 - PASS  sweep table NFCorpus n=100 K=100  (json 1.01% vs tex 1.0\%)
-- PASS  prose: n=1 shares nothing on 9-15% (K=60)  ([15.1, 15.1, 12.0, 8.7])
-- PASS  prose: n=3 on 3-7% (K=60)  ([6.7, 6.0, 2.7, 2.7])
-- PASS  prose: n=10 on 1-2% (K=60)  ([2.0, 2.3, 0.7, 1.0])
-- PASS  prose: n>=20 at most 1.7%, usually under 1%  (max 1.7%, under 1%: 11/20)
-- PASS  prose: a deeper dense list lowers every figure  ()
+- PASS  prose: cap 1 at K=60 is 8.7 to 15.1%  ((8.7, 15.1))
+- PASS  prose: cap 3 at K=60 is 2.7 to 6.7%  ((2.7, 6.7))
+- PASS  prose: cap 10 at K=60 is 0.7 to 2.3%  ((0.7, 2.3))
+- PASS  prose: cap>=20 at most 1.7%, under 1% in 11 of 20 cells  (max 1.7%, under 1%: 11/20)
+- PASS  prose: a deeper dense list never raises a figure  ()
+- PASS  prose: hidden overlap possible in 8 cells (K=100, n in {50,100}), 2,392 runs, none observed  (8 cells, 2392 runs)
+- PASS  prose: natural lengths: 11 of 232 legs with 1-3 docs fired (4.7%), 0 of 1,294 with 4+  (11/232, 0/1294)
 - PASS  caption: nomic within 4.4 points at n=1 and 1.0 point from n=3  (4.3 1.0)
 - PASS  prose: shared docs 4.0 -> 21.3 on NFCorpus (bge)  ()
 - PASS  prose: and->or R@100 nomic 0.303 -> 0.309 (NFCorpus)  ()

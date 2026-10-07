@@ -92,3 +92,15 @@ Not a performance paper. Per-condition mean query time added to the runner so th
 **Relevance verdict (item 4), both lanes:** worth posting as an arXiv preprint; not a SIGIR/ECIR full paper; plausible at a short-paper, industry, or reproducibility track; audience is practitioners running hybrid BM25+dense retrieval or RAG. DeepSeek: "short, honest, memorable." Sol: "a useful failure case and an elementary RRF diagnostic, not a new fusion method."
 
 **Not adopted.** Sol's request for per-query effectiveness on the 159 live NFCorpus queries: pytrec_eval per-query metrics are not persisted; the sentence was reworded instead of extending the runner again.
+
+---
+
+# Round 3: GPT-6 Astra (xhigh) on the full submission candidate (2026-10-07)
+
+`review_round3_devin-gpt-6-astra-xhigh.md`, 5.9 KB, inline brief of 53 KB (paper, bib, main and sweep results).
+
+**Verified and fixed.** (1) "An empty leg always produces the ceiling" needs L = 2 (with three retrievers two live overlapping legs can hide an empty one); the equivalence itself holds for any L; §2 and §8 corrected, integer k > 0 stated. (2) §1 still inferred "one retriever's rank list" from reciprocal-integer scores; disjoint lists give the same values; reworded to singleton contributions. (3) §5 "the relative step is a property of the formula at any overlap" was false (sharing only the rank-0 document gives a 50.8% first step); scoped to consecutive singleton scores. (4) Abstract "restores overlap and recall at depth" was false for bge/NFCorpus and→or (0.341 to 0.337); comparator named. (5) "The fusion is fusing nothing" too strong; replaced with "no document is reinforced by two retrievers". (6) §9 advice needed the K <= k qualification. (7) Table 4 prose ranges were whole-percent approximations (n=10 is 0.7 to 2.3%, not 1 to 2%); "usually under 1%" held in 11 of 20 cells, now stated as such; "lowers every figure" is "never raises". (8) The sweep measures a CAP, not a realised length, so the operator advice was not calibrated by it; now described as a cap, and the advice rests on the natural row counts from the per-query rows (`scripts/natural_lengths.py`: 11 of 232 legs with 1–3 docs fired, 0 of 1,294 with 4+). (9) "The K > k leak never occurred" was scoped to 60 cells where arithmetic forbids it in 52; hidden overlap needs (n−1)(K−1) >= k², i.e. only K=100, n in {50,100}: 8 cells, 2,392 runs, none observed; so stated. (10) HyDE is query-side, removed from the document-expansion citation. (11) Timing caption said "keyword and fusion only" while dense-only rows had nonzero times; caption now says dense search + keyword search + fusion, encoding excluded. (12) Tolerance (1e-12) and "unweighted RRF scores before downstream transforms" stated.
+
+**Not a defect:** "the K = k+1 deepest contribution equals 1/k" — the paper gives rank 90 at K = 100 as an example and makes no claim at K = k+1.
+
+Audit extended for every changed figure.
