@@ -2,9 +2,9 @@
 
 Code for the paper on diagnosing a silently inert retriever in hybrid search from the fused scores alone.
 
-Reciprocal-rank fusion gives each document 1/(k + r) from every retriever that ranks it at position r. A document found by one retriever alone scores at most 1/k. When the maximum fused score across a result list is exactly 1/k, no document was found by more than one retriever. Across a set of queries, that ceiling is the signature of a retriever that returns nothing, and it is visible without reading a single document.
+Reciprocal-rank fusion gives each document 1/(k + r) from every retriever that ranks it at position r. A document found by one retriever alone scores at most 1/k. When the maximum fused score across a result list is exactly 1/k, every document in it came from one retriever. Across a set of queries, that ceiling is the signature of a retriever that returns nothing, and it is visible in the scores alone.
 
-The case that motivated this: an FTS5 keyword query built by quoting every token and joining with spaces, which FTS5 reads as an implicit AND. On conversational queries it matched no chunk, the keyword half of a keyword+vector system was inert for months, and every result came from the vector leg. The fused scores had said so the whole time.
+The bug that motivated this is an FTS5 keyword query built by quoting every token and joining with spaces, which FTS5 reads as an implicit AND. On conversational queries it matched no chunk, the keyword half of a keyword+vector system was inert for months, and every result came from the vector leg. The fused scores had said so the whole time.
 
 ## Layout
 
@@ -24,4 +24,4 @@ The script downloads the BEIR split through `ir_datasets` and the encoder throug
 
 ## Provenance
 
-`hybrid.py` is extracted from a private retrieval module (`rag_core.py`, sha256 `fc7153438f2f5a332bb38eec3476b4635196ad40ebd84a1d72659910bcf19ef4`, 2026-10-07). The private corpus, its queries and its documents are not part of this repository; the paper reports only aggregate numbers from it.
+`hybrid.py` is extracted from a private retrieval module (`rag_core.py`, sha256 `fc7153438f2f5a332bb38eec3476b4635196ad40ebd84a1d72659910bcf19ef4`, 2026-10-07). The private corpus, its queries and its documents are not part of this repository. The paper reports only aggregate numbers from it.

@@ -1,0 +1,793 @@
+# Review: dead-retriever paper, draft 1 — round 1
+
+You are reviewing a short arXiv paper (cs.IR) and the code behind it. The paper claims that in reciprocal rank fusion a maximum fused score of exactly 1/k identifies a retriever that returned nothing, documents a production bug that caused exactly that (an SQLite FTS5 query built by quoting every token, which FTS5 reads as implicit AND), and reproduces the effect on two BEIR collections. Answer as a demanding IR reviewer who also reads code. Be specific and concrete; formulas and line references over adjectives; no compliments; do not restate the paper back to me. Rank findings by expected impact. Under 1200 words.
+
+## The target
+
+An arXiv preprint that a careful reader in information retrieval would accept as correct and honest: the derivation holds, every number in the text is in the result files, the claims are no wider than the evidence, the citations are real and say what the paper attributes to them, and the prose has no filler.
+
+## Earlier rounds
+
+None. This is the first outside review of the draft.
+
+## What it does now
+
+The paper (main.tex) has: the incident; the derivation of the ceiling (Section 2); the bug and its fix (Section 3); before/after aggregates from a private corpus (Section 4, Table 1); two negative results the dead leg confounded (Section 5); a BEIR reproduction with two encoders and five conditions (Section 6, Table 2 and Appendix A); related work; limitations; a short practical checklist. The private corpus itself is not available and will not be; only aggregates appear. The code (hybrid.py) is the FTS5 + exact-dense + RRF implementation with the two query builders and the ceiling report; beir_run.py produced the four result files in results/.
+
+Settled and not under review: the choice of SciFact and NFCorpus; the two encoders; that the private corpus stays private; the venue (arXiv, no workshop).
+
+## The standing verdict
+
+Author's own words: "The derivation is simple enough that I may have missed a case where it fails. The BEIR tables show the hybrid with the fixed keyword leg does NOT beat dense alone at nDCG@10 for bge; I wrote that in plainly, but a reviewer may say the paper undercuts its own motivation. The related-work section is thin and I want to know which citations are wrong or missing. The ceiling false-positive rate (three queries on NFCorpus) is read off the table; is that reasoning right?"
+
+## Attached from our side
+
+- `/Users/bemeadows/Projects/dead-retriever/paper/main.tex` — the paper, LaTeX source. The unit under review.
+- `/Users/bemeadows/Projects/dead-retriever/paper/refs.bib` — the bibliography. Check each entry against what you know.
+- `/Users/bemeadows/Projects/dead-retriever/dead_retriever/hybrid.py` — the retriever, fusion and ceiling diagnostic. The `and_quoted` mode reproduces the bug.
+- `/Users/bemeadows/Projects/dead-retriever/scripts/beir_run.py` — the experiment runner (conditions, metrics, diagnostics).
+- `/Users/bemeadows/Projects/dead-retriever/results/beir_scifact_test__BAAI_bge-base-en-v1.5.json`
+- `/Users/bemeadows/Projects/dead-retriever/results/beir_nfcorpus_test__BAAI_bge-base-en-v1.5.json`
+- `/Users/bemeadows/Projects/dead-retriever/results/beir_scifact_test__nomic-ai_nomic-embed-text-v1.5.json`
+- `/Users/bemeadows/Projects/dead-retriever/results/beir_nfcorpus_test__nomic-ai_nomic-embed-text-v1.5.json` — the four result files Tables 2 and 3 were filled from.
+
+## Questions
+
+1. **Derivation** — Is Section 2 correct? State any case where "max fused score <= 1/k implies no document was found by more than one retriever" fails under K <= k, and whether the weak-form statement for K > k is right. Is the "flatness is 1/k^2" remark right to first order?
+2. **Numbers** — Does every figure in Tables 1 to 3 and in the prose match the result files (to the rounding shown)? List any that do not. Is the false-positive reading (ceiling rate minus empty rate = three queries on NFCorpus, two after the fix) a valid inference from per-query rates, or could the two sets differ in both directions?
+3. **Claims vs evidence** — Where does the text claim more than the tables show? Where is a conclusion missing that the tables do support?
+4. **Code** — In hybrid.py, does `and_quoted` faithfully reproduce FTS5 implicit AND as documented? Does `ceiling_report` compute what Section 2 defines? Does `rrf_fuse` handle duplicates and depth as the paper says? Any defect in beir_run.py that would bias a condition (document text construction, prefixes, depth, qrels filtering)?
+5. **Citations** — Which references are wrong (venue, year, authors, title) or do not support the sentence that cites them? Which obvious related work is missing (hybrid retrieval failure analysis, RRF analysis, retrieval system monitoring)?
+6. **Prose** — Which sentences are filler, repetition, or stakes inflation? Which of the limitations should be stated earlier?
+
+Every file named above is reproduced in full below. Do not use any tool: do not read files, run commands, or fetch URLs. Answer in your final message.
+
+
+=== paper/main.tex ===
+
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{natbib}
+\usepackage{xcolor}
+\newcommand{\todo}[1]{\textcolor{red}{[#1]}}
+\setlength{\parskip}{0.35em}
+
+\title{A Score Ceiling Diagnoses a Dead Retriever in Reciprocal Rank Fusion}
+\author{Benjamin Meadows\\Independent Researcher\\\texttt{ben@benjaminmeadows.com}}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A hybrid search system fuses a keyword retriever and a vector retriever with reciprocal rank fusion (RRF). In the system described here, the keyword retriever returned no results for most natural-language queries for several months, and nobody noticed: the vector retriever always filled the result list, and the usual spot checks used short keyword queries, which still matched. The failure was visible the whole time in the fused scores. RRF credits a document $1/(k+r)$ from each retriever that ranks it at position $r$, so a document found by only one retriever scores at most $1/k$. When the maximum fused score across a result list is exactly $1/k$, no document was found by more than one retriever; across a set of queries that ceiling is the signature of a retriever that returns nothing, and it can be read from the scores alone. I give the derivation, the bug that caused it (quoting every token of an SQLite FTS5 query, which FTS5 reads as an implicit AND), before-and-after measurements on the production corpus, and two negative results from the same system that the dead leg had confounded. I then reproduce the effect on two public BEIR collections with two encoders: the quoted-AND builder returns nothing for 98.0\% of SciFact's sentence queries and 50.8\% of NFCorpus's title queries, the hybrid built on it is indistinguishable from dense-only retrieval on the sentence-query collection, and the fraction of queries whose maximum fused score sits at $1/k$ tracks the fraction with an empty keyword leg to within one percentage point. Code, results and this paper's source are at \todo{repository URL}.
+\end{abstract}
+
+\section{The incident}
+
+The system is a personal search engine over about 30\,000 to 217\,000 text chunks per corpus, split across five SQLite databases that share one retrieval module. Each query runs two retrievers over the same chunks: an SQLite FTS5 index ranked by BM25 \citep{robertson2009bm25,sqlite_fts5}, and a 768-dimensional embedding index searched by exact cosine. The two ranked lists, each cut at depth $K=60$, are fused with reciprocal rank fusion at $k=60$ \citep{cormack2009rrf}.
+
+On 2026-08-07 a recency-decay feature was evaluated and rejected because RRF scores were ``flat near the top'': adjacent ranks differed by about 1.4\%, so even a 5\% age multiplier acted as a strong reranker rather than a tie-break. That flatness was recorded as a property of fusion. On 2026-08-18, while investigating why the keyword side rarely seemed to matter, I logged the keyword retriever's row counts for ten real queries. Five of five conversational queries matched zero chunks, as did a two-word place-name query. Only queries of two or three technical tokens matched anything. The keyword retriever had been inert on prose queries since the system was built, and all four sibling engines carried the same line of code.
+
+The fused scores had said so from the start. Over the top 100 fused results of those ten queries, the maximum score was exactly $1/60 = 0.01\overline{6}$. The values were $1/60, 1/61, 1/62, \ldots$ with gaps where per-file deduplication removed a chunk. That is one live retriever's rank list passed through the RRF formula, and the ``1.4\% flatness'' is $1/(k+r) - 1/(k+r+1) \approx 1/k^2$.
+
+\section{The ceiling}
+
+Let $L$ retrievers each return a ranked list cut at depth $K$, and let $r_\ell(d) \in \{0,\ldots,K-1\}$ be document $d$'s 0-based rank in retriever $\ell$'s list when present. Reciprocal rank fusion scores
+\[
+  s(d) \;=\; \sum_{\ell : d \in \text{list}_\ell} \frac{1}{k + r_\ell(d)} .
+\]
+A document present in exactly one list scores at most $1/k$ (rank 0). A document present in two lists scores at least $2/(k+K-1)$ (last place in both). The second bound exceeds the first whenever
+\[
+  \frac{2}{k+K-1} > \frac{1}{k} \iff K \le k ,
+\]
+so with the common setting $K \le k$ (here $K = k = 60$), every document found by two or more retrievers outscores every document found by one. Under that setting the following holds exactly:
+
+\begin{quote}
+If $\max_d s(d) \le 1/k$ over a result list, no document in it was retrieved by more than one retriever.
+\end{quote}
+
+For one query that is weak evidence: the retrievers may simply disagree. Across a set of queries it is strong evidence, because two retrievers over the same corpus that both return $K$ results almost always share at least one document somewhere in their top $K$. A retriever that returns nothing, however, shares nothing with anyone, every time. In the incident, the ceiling held on 10 of 10 queries, and the keyword leg had returned zero rows on 6 of them and fewer than $K$ on the rest.
+
+When $K > k$ the exact statement no longer holds (a document ranked deep in both lists can score below $1/k$), but the diagnostic survives in a weaker form: a maximum of exactly $1/k$ still means the top fused document was found by one retriever at its rank 0, and the sequence $1/k, 1/(k+1), 1/(k+2), \ldots$ in the fused scores is still the fingerprint of a single list. A system that keeps per-retriever ranks can test the condition directly, by counting documents credited by two or more retrievers. The point of the ceiling is that a system that logs only fused scores can test it too, and that the test costs nothing.
+
+\section{The bug}
+
+The keyword query builder was
+\begin{verbatim}
+fq = " ".join(f'"{t}"' for t in tokens)
+\end{verbatim}
+which, for the query \emph{how do I fix the empty feed}, produced
+\begin{verbatim}
+"how" "do" "i" "fix" "the" "empty" "feed"
+\end{verbatim}
+FTS5 reads a sequence of phrases separated by whitespace as an implicit AND \citep[\S 3]{sqlite_fts5}: every quoted token must occur in the same row. Rows here were 1\,400-character chunks, so a six-token conversational query almost never matched. Two- or three-token technical queries did match, which is why spot checks during development passed, and an FTS5 syntax error was caught and ignored, so a malformed query also returned nothing without a trace. The vector retriever returns exactly $K$ results for any query, so result lists were always full.
+
+The fix has two parts, and the second is not cosmetic. Tokens are joined with \verb|OR| and ranked by BM25; a raw OR over all tokens matched about 100\,000 chunks and cost 161\,ms per query, so stopwords and tokens shorter than three characters are dropped first, after which a typical query matches about 3\,500 chunks in 2 to 4\,ms. If a query is all stopwords, the raw tokens are used.
+
+\section{Measurements on the production corpus}
+\label{sec:prod}
+
+The corpus is private; this section reports counts, timings and overlaps, with no query or document text. Ten real queries were replayed before and after the fix on the same shard (Table~\ref{tab:prod}).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrr}
+\toprule
+ & implicit AND & OR + stopword drop \\
+\midrule
+Queries on which the keyword leg returned any row & 4 / 10 & 10 / 10 \\
+Queries with a document found by both legs & 0 / 10 & 10 / 10 \\
+Maximum fused score over the top 100 results & $1/60 = 0.0167$ & 0.025 -- 0.033 \\
+Keyword leg latency, conversational queries & -- & 2 -- 4\,ms \\
+\bottomrule
+\end{tabular}
+\caption{The keyword leg before and after the fix, ten real queries, one production shard. The ``before'' latency is omitted because a query that matches nothing is fast; a raw OR without the stopword drop took 161\,ms.}
+\label{tab:prod}
+\end{table}
+
+The same builder was present at a different line number in four sibling engines over four other corpora (the five have since been merged into one module). Each inherited the same behaviour regardless of corpus, which is the second lesson of the incident: a copied bug costs one investigation per copy to find and one patch per copy to fix.
+
+\section{Two negative results the dead leg confounded}
+
+Both of the following were measured on the same system before the keyword leg was fixed, and both verdicts stand; what changed is the explanation.
+
+\paragraph{Recency decay.} A multiplicative age penalty on fused scores (floor 0.85, time constant 180 days) changed the top-1 result on 4 of 7 real queries on a notes corpus, and the changes were as often wrong as right; a canonical note unedited for 338 days was demoted under a 13-day-old draft. On a second corpus spanning only 63 days the multiplier varied between 0.956 and 1.000 across every document and changed 0 of 8 top-1 results. The feature was rejected. The reason a 5\% multiplier could move top-1 at all was the flatness of the fused scores, and that flatness was the dead leg: a single retriever's $1/(k+r)$ sequence. Whether decay would help a fused list with real two-leg scores was not tested and is not claimed either way.
+
+\paragraph{A cheap contextual prefix.} Prepending \texttt{kind: title} to each chunk before embedding (the stored text and the keyword index unchanged, so the vector was the only variable) and re-embedding one corpus of 3\,046 documents and 30\,734 chunks took 25 minutes. On 15 realistic queries, 13 had an identical top-1, mean top-5 overlap was 80\%, one query improved and one regressed. The query predicted to benefit most returned an identical, still wrong, top 3. The change was not adopted. This is a title prefix, not the model-written situating context of \citet{anthropic2024contextual}, and the corpus was a weak test (documents whose title is their opening line), so it is a negative result for the cheap variant on that corpus, nothing wider. On this system the vector leg was the only live leg at the time, so the measurement is of the vector change alone, which was the intent.
+
+\section{Reproduction on public collections}
+\label{sec:beir}
+
+To check that the effect is a property of the query builder and not of one private corpus, I reran the five retrieval conditions on two BEIR test collections \citep{thakur2021beir}: SciFact \citep{wadden2020scifact}, 5\,183 abstracts and 300 claim queries, and NFCorpus \citep{boteva2016nfcorpus}, 3\,633 documents and 323 queries. SciFact queries are full sentences; NFCorpus queries are short titles. Two encoders were used: \texttt{nomic-embed-text-v1.5} \citep{nussbaum2024nomic}, the production encoder's public release, and \texttt{bge-base-en-v1.5} \citep{xiao2023cpack}, both 768-dimensional. Data came through \texttt{ir\_datasets} \citep{macavaney2021irdatasets} and metrics through \texttt{pytrec\_eval} \citep{vangysel2018pytrec}. Depth $K = 100$, $k = 60$; note that $K > k$ here, so the ceiling is read in its weak form and the two-leg count is measured directly.
+
+The conditions are: \textsc{bm25-and} (the buggy builder), \textsc{bm25-or} (the fix), \textsc{dense}, \textsc{hybrid-and} (dense + buggy keyword, RRF), \textsc{hybrid-or} (dense + fixed keyword, RRF). For each hybrid condition the per-query diagnostics are whether the keyword leg returned nothing, whether the maximum fused score sat at $1/k$, and how many documents were credited by both legs.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llrrrrr}
+\toprule
+Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & both-leg docs \\
+\midrule
+SciFact & bm25-and & 0.018 & 0.018 & 98.0\% & -- & -- \\
+SciFact & bm25-or & 0.665 & 0.876 & 0.0\% & -- & -- \\
+SciFact & dense & 0.738 & 0.970 & -- & -- & -- \\
+SciFact & hybrid-and & 0.739 & 0.970 & 98.0\% & 98.0\% & 0.02 \\
+SciFact & hybrid-or & 0.730 & 0.969 & 0.0\% & 0.0\% & 28.4 \\
+\midrule
+NFCorpus & bm25-and & 0.193 & 0.095 & 50.8\% & -- & -- \\
+NFCorpus & bm25-or & 0.306 & 0.233 & 7.7\% & -- & -- \\
+NFCorpus & dense & 0.369 & 0.332 & -- & -- & -- \\
+NFCorpus & hybrid-and & 0.377 & 0.337 & 50.8\% & 51.7\% & 3.9 \\
+NFCorpus & hybrid-or & 0.358 & 0.336 & 7.7\% & 8.4\% & 20.2 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{bge-base-en-v1.5} on two BEIR test collections. ``kw empty'' is the fraction of queries on which the keyword leg returned no document; ``at ceiling'' the fraction on which the maximum fused score was $1/k$; ``both-leg docs'' the mean number of documents credited by both retrievers. The second encoder is in Appendix~\ref{app:nomic}.}
+\label{tab:beir}
+\end{table}
+
+Three things are visible in Table~\ref{tab:beir}. First, the builder's failure depends on query length exactly as it did in production: SciFact's claim-length queries matched nothing 98.0\% of the time, NFCorpus's short title queries 50.8\% of the time, and BM25 with the fixed builder is a respectable retriever on both (0.665 and 0.306 nDCG@10). Second, where the leg is empty the hybrid is the dense retriever under another name: on SciFact, \textsc{hybrid-and} has identical Recall@100 to \textsc{dense} and nDCG@10 within 0.002, because a fusion with an empty list is the other list. On NFCorpus the leg fired on half the queries, and \textsc{hybrid-and} differs from \textsc{dense} by under 0.005 Recall@100 and under 0.008 nDCG@10, the contribution of that half. Third, the ceiling detects the empty leg almost exactly. On SciFact the two rates coincide (98.0\% and 98.0\%); on NFCorpus the ceiling fires on 51.7\% of queries against 50.8\% empty, a difference of three queries on which the keyword leg returned documents that happened to share nothing with the dense top 100, and after the fix 8.4\% against 7.7\%, two queries. Those are the false positives of the test on these collections: under one percentage point.
+
+The fix restores the keyword leg; it does not, on these two collections with this encoder, make the hybrid better than dense alone at nDCG@10 (0.730 against 0.738 on SciFact, 0.358 against 0.369 on NFCorpus). With the other encoder (Appendix~\ref{app:nomic}) the hybrid gains three points of Recall@100 on SciFact and is otherwise within noise. Whether RRF over BM25 and a given dense encoder helps is a question \citet{bruch2023fusion} treat at length; the point here is narrower. Before the fix, the question could not even be asked, and the system's own scores had been saying so.
+
+\section{Related work}
+
+Reciprocal rank fusion was proposed by \citet{cormack2009rrf}, who set $k=60$ by experiment; that constant has survived into most hybrid-search implementations unchanged, which is what makes the $1/60$ ceiling recognisable on sight. \citet{bruch2023fusion} analyse fusion functions for hybrid lexical and semantic retrieval and show when RRF is and is not competitive with a tuned convex combination; this paper is about a failure mode upstream of that choice, where one of the lists is empty. BEIR \citep{thakur2021beir} established that BM25 is a hard zero-shot baseline, which is part of why a hybrid system that silently drops it loses more than it appears to. The FTS5 query grammar is documented in the SQLite manual \citep{sqlite_fts5}; the implicit-AND reading of adjacent phrases is stated there, and the builder here simply did not follow it.
+
+\section{Limitations}
+
+The production measurements are on ten and fifteen queries over private corpora, reported as aggregates; they establish that the failure happened and how it looked, not an effect size. The public reproduction uses two small collections and two encoders. The ceiling statement is exact only for $K \le k$; the common $K = 100, k = 60$ setting (used in Section~\ref{sec:beir}) gets the weaker form. The recency and prefix results are negative results on one system each and are not claims about those techniques in general.
+
+\section{What to check in your own system}
+
+Log the maximum fused score per query. If it is $1/k$ more than occasionally, one of your retrievers is returning nothing. Log each retriever's row count per query alongside it; an FTS layer that returns zero rows for a six-word query is broken, not selective. Test the keyword builder with a conversational sentence, not a two-word term. And if your fusion scores look ``flat'', compute $1/(k+r) - 1/(k+r+1)$ before concluding anything about fusion.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Second encoder}
+\label{app:nomic}
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llrrrrr}
+\toprule
+Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & both-leg docs \\
+\midrule
+SciFact & dense & 0.703 & 0.928 & -- & -- & -- \\
+SciFact & hybrid-and & 0.705 & 0.928 & 98.0\% & 98.0\% & 0.02 \\
+SciFact & hybrid-or & 0.708 & 0.958 & 0.0\% & 0.0\% & 25.9 \\
+\midrule
+NFCorpus & dense & 0.347 & 0.298 & -- & -- & -- \\
+NFCorpus & hybrid-and & 0.361 & 0.303 & 50.8\% & 51.7\% & 3.7 \\
+NFCorpus & hybrid-or & 0.344 & 0.309 & 7.7\% & 8.4\% & 21.0 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{nomic-embed-text-v1.5}, same collections and layout as Table~\ref{tab:beir}. The BM25-only rows are encoder-independent and identical to Table~\ref{tab:beir}.}
+\label{tab:nomic}
+\end{table}
+
+\section{Run details}
+Both encoders ran on CPU (12-core x86-64, PyTorch CPU wheels) in about an hour per collection; document embeddings are cached by the runner. \texttt{nomic-embed-text-v1.5} needs \texttt{transformers} below 4.50 because its remote model code calls a method removed in later releases; the runner pins it. Documents were embedded as title and text joined by a space with the encoder's document prefix, queries with its query prefix; both normalised. The FTS5 index holds title and text columns, BM25 with default weights, depth 100 for every retriever.
+
+\end{document}
+
+
+=== paper/refs.bib ===
+
+@inproceedings{cormack2009rrf,
+  author    = {Gordon V. Cormack and Charles L. A. Clarke and Stefan B{\"u}ttcher},
+  title     = {Reciprocal Rank Fusion Outperforms {Condorcet} and Individual Rank Learning Methods},
+  booktitle = {Proceedings of the 32nd International {ACM} {SIGIR} Conference on Research and Development in Information Retrieval},
+  year      = {2009},
+  pages     = {758--759}
+}
+
+@inproceedings{thakur2021beir,
+  author    = {Nandan Thakur and Nils Reimers and Andreas R{\"u}ckl{\'e} and Abhishek Srivastava and Iryna Gurevych},
+  title     = {{BEIR}: A Heterogeneous Benchmark for Zero-shot Evaluation of Information Retrieval Models},
+  booktitle = {Thirty-fifth Conference on Neural Information Processing Systems, Datasets and Benchmarks Track},
+  year      = {2021}
+}
+
+@article{bruch2023fusion,
+  author  = {Sebastian Bruch and Siyu Gai and Amir Ingber},
+  title   = {An Analysis of Fusion Functions for Hybrid Retrieval},
+  journal = {{ACM} Transactions on Information Systems},
+  volume  = {42},
+  number  = {1},
+  year    = {2023}
+}
+
+@inproceedings{wadden2020scifact,
+  author    = {David Wadden and Shanchuan Lin and Kyle Lo and Lucy Lu Wang and Madeleine van Zuylen and Arman Cohan and Hannaneh Hajishirzi},
+  title     = {Fact or Fiction: Verifying Scientific Claims},
+  booktitle = {Proceedings of the 2020 Conference on Empirical Methods in Natural Language Processing},
+  year      = {2020},
+  pages     = {7534--7550}
+}
+
+@inproceedings{boteva2016nfcorpus,
+  author    = {Vera Boteva and Demian Gholipour and Artem Sokolov and Stefan Riezler},
+  title     = {A Full-Text Learning to Rank Dataset for Medical Information Retrieval},
+  booktitle = {Advances in Information Retrieval: 38th European Conference on {IR} Research},
+  year      = {2016},
+  pages     = {716--722}
+}
+
+@article{robertson2009bm25,
+  author  = {Stephen Robertson and Hugo Zaragoza},
+  title   = {The Probabilistic Relevance Framework: {BM25} and Beyond},
+  journal = {Foundations and Trends in Information Retrieval},
+  volume  = {3},
+  number  = {4},
+  year    = {2009},
+  pages   = {333--389}
+}
+
+@article{nussbaum2024nomic,
+  author  = {Zach Nussbaum and John X. Morris and Brandon Duderstadt and Andriy Mulyar},
+  title   = {Nomic Embed: Training a Reproducible Long Context Text Embedder},
+  journal = {arXiv preprint arXiv:2402.01613},
+  year    = {2024}
+}
+
+@article{xiao2023cpack,
+  author  = {Shitao Xiao and Zheng Liu and Peitian Zhang and Niklas Muennighoff},
+  title   = {{C-Pack}: Packaged Resources To Advance General {Chinese} Embedding},
+  journal = {arXiv preprint arXiv:2309.07597},
+  year    = {2023}
+}
+
+@inproceedings{vangysel2018pytrec,
+  author    = {Christophe {Van Gysel} and Maarten de Rijke},
+  title     = {Pytrec\_eval: An Extremely Fast Python Interface to trec\_eval},
+  booktitle = {Proceedings of the 41st International {ACM} {SIGIR} Conference on Research and Development in Information Retrieval},
+  year      = {2018},
+  pages     = {873--876}
+}
+
+@inproceedings{macavaney2021irdatasets,
+  author    = {Sean MacAvaney and Andrew Yates and Sergey Feldman and Doug Downey and Arman Cohan and Nazli Goharian},
+  title     = {Simplified Data Wrangling with ir\_datasets},
+  booktitle = {Proceedings of the 44th International {ACM} {SIGIR} Conference on Research and Development in Information Retrieval},
+  year      = {2021},
+  pages     = {2429--2436}
+}
+
+@misc{anthropic2024contextual,
+  author       = {{Anthropic}},
+  title        = {Introducing Contextual Retrieval},
+  howpublished = {\url{https://www.anthropic.com/news/contextual-retrieval}},
+  year         = {2024},
+  note         = {Accessed 2026-10-07}
+}
+
+@misc{sqlite_fts5,
+  author       = {{SQLite Consortium}},
+  title        = {{SQLite FTS5} Extension},
+  howpublished = {\url{https://www.sqlite.org/fts5.html}},
+  note         = {Section 3, full-text query syntax. Accessed 2026-10-07}
+}
+
+
+=== dead_retriever/hybrid.py ===
+
+"""Hybrid keyword + dense retrieval with reciprocal-rank fusion, and the
+score-ceiling diagnostic that detects a leg returning nothing.
+
+Reciprocal-rank fusion gives a document 1/(k + r) from every leg that ranks
+it at position r (0-based). A document found by two legs therefore scores at
+least 2/(k + K - 1), and a document ranked first by one leg alone scores
+exactly 1/k. If the maximum fused score over a whole result list is 1/k, no
+document was found by more than one leg: either the legs disagree completely
+or one of them returned nothing. Across many queries the second explanation
+is the only plausible one, and it can be read off the scores without looking
+at any document.
+
+The keyword builder has two modes. `and_quoted` reproduces the FTS5 query a
+naive builder emits: every token quoted and space-joined, which FTS5 reads as
+an implicit AND over all tokens. On conversational queries that match no
+chunk. `or_bm25` drops stopwords and short tokens and joins the rest with OR,
+ranked by bm25.
+"""
+import re
+import sqlite3
+from dataclasses import dataclass, field
+
+import numpy as np
+
+RRF_K = 60
+
+FTS_STOP = frozenset("""a an the and or but if then than that this these those of in on at to
+for from by with about into over under after before is are was were be been being am do does
+did doing have has had having i me my mine we us our you your he she it its they them their
+as not no nor so such can could should would will shall may might must what which who whom
+whose when where why how all any both each few more most other some only own same too very
+just dont don t s re ve ll m d get got make made want need know think see look
+""".split())
+
+
+def tokens(q):
+    return re.findall(r"[\w$#.@-]+", q.lower())
+
+
+def fts_query(q, mode="or_bm25"):
+    """FTS5 MATCH string for a natural-language query.
+
+    and_quoted: '"how" "do" "i" "fix" "the" "feed"'  (implicit AND)
+    or_bm25:    '"fix" OR "feed"'
+    """
+    toks = tokens(q)
+    if mode == "and_quoted":
+        return " ".join(f'"{t}"' for t in toks)
+    if mode == "or_bm25":
+        kw = [t for t in toks if len(t) > 2 and t not in FTS_STOP] or toks
+        return " OR ".join(f'"{t}"' for t in kw)
+    raise ValueError(f"unknown fts mode {mode!r}")
+
+
+class KeywordIndex:
+    """SQLite FTS5 over (doc_id, title, text), ranked by bm25."""
+
+    def __init__(self, path=":memory:"):
+        self.c = sqlite3.connect(path)
+        self.c.execute("CREATE VIRTUAL TABLE IF NOT EXISTS fts USING fts5(doc_id UNINDEXED, title, text)")
+
+    def add(self, rows):
+        self.c.executemany("INSERT INTO fts(doc_id, title, text) VALUES (?, ?, ?)", rows)
+        self.c.commit()
+
+    def search(self, match, limit):
+        """Ranked doc ids for an FTS5 MATCH string; [] on a syntax error."""
+        try:
+            cur = self.c.execute(
+                "SELECT doc_id FROM fts WHERE fts MATCH ? ORDER BY bm25(fts) LIMIT ?", (match, limit))
+            return [r[0] for r in cur]
+        except sqlite3.OperationalError:
+            return []
+
+
+class DenseIndex:
+    """Exact cosine search over a unit-normalised matrix."""
+
+    def __init__(self, ids, matrix):
+        self.ids = list(ids)
+        m = np.asarray(matrix, dtype=np.float32)
+        norms = np.linalg.norm(m, axis=1, keepdims=True)
+        norms[norms == 0] = 1.0
+        self.m = m / norms
+
+    def search(self, qv, limit):
+        q = np.asarray(qv, dtype=np.float32)
+        q = q / (np.linalg.norm(q) or 1.0)
+        sims = self.m @ q
+        k = min(limit, len(sims))
+        if k == 0:
+            return []
+        cand = np.argpartition(-sims, k - 1)[:k]
+        order = cand[np.lexsort((cand, -sims[cand]))]
+        return [self.ids[i] for i in order]
+
+
+def rrf_fuse(legs, k=RRF_K):
+    """legs: {name: [doc_id, ...] ranked}. Returns (scores, ranks) where
+    scores = {doc_id: fused} and ranks = {name: {doc_id: rank}}."""
+    scores, ranks = {}, {}
+    for name, ranked in legs.items():
+        ranks[name] = {}
+        for r, d in enumerate(ranked):
+            if d in ranks[name]:
+                continue
+            ranks[name][d] = r
+            scores[d] = scores.get(d, 0.0) + 1.0 / (k + r)
+    return scores, ranks
+
+
+@dataclass
+class CeilingReport:
+    max_score: float
+    ceiling: float
+    legs_configured: int
+    legs_nonempty: int
+    multi_leg_docs: int
+    at_ceiling: bool
+    empty_legs: list = field(default_factory=list)
+
+
+def ceiling_report(scores, ranks, k=RRF_K, eps=1e-12):
+    """Was any document found by more than one leg? If not, the maximum fused
+    score is exactly 1/k (the top document of one leg, credited once)."""
+    mx = max(scores.values(), default=0.0)
+    multi = sum(1 for d in scores if sum(d in r for r in ranks.values()) > 1)
+    empty = [n for n, r in ranks.items() if not r]
+    return CeilingReport(
+        max_score=mx, ceiling=1.0 / k, legs_configured=len(ranks),
+        legs_nonempty=len(ranks) - len(empty), multi_leg_docs=multi,
+        at_ceiling=(len(ranks) > 1 and mx <= 1.0 / k + eps), empty_legs=empty)
+
+
+class HybridRetriever:
+    def __init__(self, keyword, dense, fts_mode="or_bm25", depth=60, k=RRF_K):
+        self.keyword, self.dense = keyword, dense
+        self.fts_mode, self.depth, self.k = fts_mode, depth, k
+
+    def retrieve(self, q, qv=None):
+        legs = {}
+        if self.dense is not None and qv is not None:
+            legs["dense"] = self.dense.search(qv, self.depth)
+        if self.keyword is not None:
+            legs["keyword"] = self.keyword.search(fts_query(q, self.fts_mode), self.depth)
+        scores, ranks = rrf_fuse(legs, self.k)
+        return scores, ranks
+
+
+=== scripts/beir_run.py ===
+
+#!/opt/homebrew/bin/uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["ir_datasets", "sentence-transformers>=3,<4", "transformers>=4.44,<4.50", "pytrec_eval", "numpy", "einops", "torch"]
+#
+# [[tool.uv.index]]
+# name = "pytorch-cpu"
+# url = "https://download.pytorch.org/whl/cpu"
+# explicit = true
+#
+# [tool.uv.sources]
+# torch = { index = "pytorch-cpu" }
+# ///
+"""Run the dead-retriever conditions on one BEIR test split and write metrics.
+
+    beir_run.py --dataset beir/scifact/test --model nomic-ai/nomic-embed-text-v1.5 --out results/
+
+Conditions: bm25_and (quoted-AND builder), bm25_or, dense, hybrid_and, hybrid_or.
+Metrics: nDCG@10 and Recall@100 (pytrec_eval), plus per-query fusion diagnostics
+for the hybrid conditions (keyword leg empty, max fused score at the 1/k ceiling,
+documents credited by both legs).
+"""
+import argparse
+import json
+import sys
+import time
+from pathlib import Path
+
+import numpy as np
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+from dead_retriever import (RRF_K, DenseIndex, HybridRetriever, KeywordIndex,  # noqa: E402
+                            ceiling_report, fts_query)
+
+DOC_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_document: ", "nomic-ai/nomic-embed-text-v1": "search_document: "}
+QRY_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_query: ", "nomic-ai/nomic-embed-text-v1": "search_query: "}
+CONDITIONS = ("bm25_and", "bm25_or", "dense", "hybrid_and", "hybrid_or")
+
+
+def load(dataset):
+    import ir_datasets
+    ds = ir_datasets.load(dataset)
+    docs = [(d.doc_id, getattr(d, "title", "") or "", d.text) for d in ds.docs_iter()]
+    queries = [(q.query_id, q.text) for q in ds.queries_iter()]
+    qrels = {}
+    for r in ds.qrels_iter():
+        qrels.setdefault(r.query_id, {})[r.doc_id] = int(r.relevance)
+    queries = [q for q in queries if q[0] in qrels]
+    return docs, queries, qrels
+
+
+def embed_all(model_name, texts, prefix, cache, batch):
+    if cache.exists():
+        return np.load(cache)
+    from sentence_transformers import SentenceTransformer
+    model = SentenceTransformer(model_name, trust_remote_code=True)
+    vecs = model.encode([prefix + t for t in texts], batch_size=batch,
+                        show_progress_bar=True, normalize_embeddings=True, convert_to_numpy=True)
+    cache.parent.mkdir(parents=True, exist_ok=True)
+    np.save(cache, vecs.astype(np.float32))
+    return vecs
+
+
+def build_keyword(docs, path):
+    fresh = not path.exists()
+    kw = KeywordIndex(str(path))
+    if fresh:
+        kw.add(docs)
+    return kw
+
+
+def run_query(cond, q, qv, kw, dense, depth):
+    """Ranked {doc_id: score} for one condition, plus a diagnostics dict."""
+    if cond == "bm25_and":
+        ranked = kw.search(fts_query(q, "and_quoted"), depth)
+        return {d: 1.0 / (RRF_K + r) for r, d in enumerate(ranked)}, {"empty": not ranked}
+    if cond == "bm25_or":
+        ranked = kw.search(fts_query(q, "or_bm25"), depth)
+        return {d: 1.0 / (RRF_K + r) for r, d in enumerate(ranked)}, {"empty": not ranked}
+    if cond == "dense":
+        ranked = dense.search(qv, depth)
+        return {d: 1.0 / (RRF_K + r) for r, d in enumerate(ranked)}, {}
+    mode = "and_quoted" if cond == "hybrid_and" else "or_bm25"
+    scores, ranks = HybridRetriever(kw, dense, fts_mode=mode, depth=depth).retrieve(q, qv)
+    rep = ceiling_report(scores, ranks)
+    return scores, {"keyword_empty": "keyword" in rep.empty_legs, "at_ceiling": rep.at_ceiling,
+                    "multi_leg_docs": rep.multi_leg_docs, "max_score": rep.max_score}
+
+
+def evaluate(run, qrels):
+    import pytrec_eval
+    ev = pytrec_eval.RelevanceEvaluator(qrels, {"ndcg_cut_10", "recall_100"})
+    per_q = ev.evaluate(run)
+    n = len(per_q) or 1
+    return {m: sum(v[m] for v in per_q.values()) / n for m in ("ndcg_cut_10", "recall_100")}
+
+
+def summarize_diag(diags):
+    out = {}
+    for key in ("empty", "keyword_empty", "at_ceiling"):
+        vals = [d[key] for d in diags if key in d]
+        if vals:
+            out[key + "_rate"] = sum(vals) / len(vals)
+    ml = [d["multi_leg_docs"] for d in diags if "multi_leg_docs" in d]
+    if ml:
+        out["multi_leg_docs_mean"] = sum(ml) / len(ml)
+    return out
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--dataset", default="beir/scifact/test")
+    ap.add_argument("--model", default="nomic-ai/nomic-embed-text-v1.5")
+    ap.add_argument("--depth", type=int, default=100)
+    ap.add_argument("--batch", type=int, default=64)
+    ap.add_argument("--cache", default="cache")
+    ap.add_argument("--out", default="results")
+    a = ap.parse_args()
+
+    tag = a.dataset.replace("/", "_") + "__" + a.model.replace("/", "_")
+    cache = Path(a.cache)
+    docs, queries, qrels = load(a.dataset)
+    print(f"{a.dataset}: {len(docs)} docs, {len(queries)} queries with qrels", file=sys.stderr)
+
+    t0 = time.time()
+    dvec = embed_all(a.model, [f"{t} {x}".strip() for _, t, x in docs], DOC_PREFIX.get(a.model, ""),
+                     cache / f"{tag}.docs.npy", a.batch)
+    qvec = embed_all(a.model, [q for _, q in queries], QRY_PREFIX.get(a.model, ""),
+                     cache / f"{tag}.queries.npy", a.batch)
+    dense = DenseIndex([d[0] for d in docs], dvec)
+    kw = build_keyword(docs, cache / f"{a.dataset.replace('/', '_')}.fts.sqlite")
+    print(f"indexes ready in {time.time() - t0:.0f}s", file=sys.stderr)
+
+    results = {"dataset": a.dataset, "model": a.model, "depth": a.depth, "rrf_k": RRF_K,
+               "n_docs": len(docs), "n_queries": len(queries), "conditions": {}}
+    for cond in CONDITIONS:
+        run, diags = {}, []
+        for (qid, q), qv in zip(queries, qvec):
+            scores, diag = run_query(cond, q, qv, kw, dense, a.depth)
+            run[qid] = {str(d): float(s) for d, s in scores.items()}
+            diags.append(diag)
+        results["conditions"][cond] = {**evaluate(run, qrels), **summarize_diag(diags)}
+        print(cond, json.dumps(results["conditions"][cond]), file=sys.stderr)
+
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    (out / f"{tag}.json").write_text(json.dumps(results, indent=1) + "\n")
+    print(out / f"{tag}.json")
+
+
+if __name__ == "__main__":
+    main()
+
+
+=== results/beir_scifact_test__BAAI_bge-base-en-v1.5.json ===
+
+{
+ "dataset": "beir/scifact/test",
+ "model": "BAAI/bge-base-en-v1.5",
+ "depth": 100,
+ "rrf_k": 60,
+ "n_docs": 5183,
+ "n_queries": 300,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.017967933499973672,
+   "recall_100": 0.0175,
+   "empty_rate": 0.98
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.6652831835476664,
+   "recall_100": 0.8758888888888888,
+   "empty_rate": 0.0
+  },
+  "dense": {
+   "ndcg_cut_10": 0.7376262824405598,
+   "recall_100": 0.97
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.7385560556246995,
+   "recall_100": 0.97,
+   "keyword_empty_rate": 0.98,
+   "at_ceiling_rate": 0.98,
+   "multi_leg_docs_mean": 0.023333333333333334
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.7301688709853327,
+   "recall_100": 0.9693333333333334,
+   "keyword_empty_rate": 0.0,
+   "at_ceiling_rate": 0.0,
+   "multi_leg_docs_mean": 28.39666666666667
+  }
+ }
+}
+
+
+=== results/beir_nfcorpus_test__BAAI_bge-base-en-v1.5.json ===
+
+{
+ "dataset": "beir/nfcorpus/test",
+ "model": "BAAI/bge-base-en-v1.5",
+ "depth": 100,
+ "rrf_k": 60,
+ "n_docs": 3633,
+ "n_queries": 323,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.19328748232833015,
+   "recall_100": 0.09468591006219289,
+   "empty_rate": 0.5077399380804953
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.30593933783412974,
+   "recall_100": 0.23332407907648695,
+   "empty_rate": 0.07739938080495357
+  },
+  "dense": {
+   "ndcg_cut_10": 0.3694588626103973,
+   "recall_100": 0.3320020275338423
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.3769262932355216,
+   "recall_100": 0.33653919286131234,
+   "keyword_empty_rate": 0.5077399380804953,
+   "at_ceiling_rate": 0.5170278637770898,
+   "multi_leg_docs_mean": 3.9071207430340555
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.3582685360214389,
+   "recall_100": 0.3364783344826845,
+   "keyword_empty_rate": 0.07739938080495357,
+   "at_ceiling_rate": 0.08359133126934984,
+   "multi_leg_docs_mean": 20.179566563467493
+  }
+ }
+}
+
+
+=== results/beir_scifact_test__nomic-ai_nomic-embed-text-v1.5.json ===
+
+{
+ "dataset": "beir/scifact/test",
+ "model": "nomic-ai/nomic-embed-text-v1.5",
+ "depth": 100,
+ "rrf_k": 60,
+ "n_docs": 5183,
+ "n_queries": 300,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.017967933499973672,
+   "recall_100": 0.0175,
+   "empty_rate": 0.98
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.6652831835476664,
+   "recall_100": 0.8758888888888888,
+   "empty_rate": 0.0
+  },
+  "dense": {
+   "ndcg_cut_10": 0.703264558006416,
+   "recall_100": 0.9283333333333333
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.7049349018735447,
+   "recall_100": 0.9283333333333333,
+   "keyword_empty_rate": 0.98,
+   "at_ceiling_rate": 0.98,
+   "multi_leg_docs_mean": 0.023333333333333334
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.707599954130132,
+   "recall_100": 0.9583333333333334,
+   "keyword_empty_rate": 0.0,
+   "at_ceiling_rate": 0.0,
+   "multi_leg_docs_mean": 25.9
+  }
+ }
+}
+
+
+=== results/beir_nfcorpus_test__nomic-ai_nomic-embed-text-v1.5.json ===
+
+{
+ "dataset": "beir/nfcorpus/test",
+ "model": "nomic-ai/nomic-embed-text-v1.5",
+ "depth": 100,
+ "rrf_k": 60,
+ "n_docs": 3633,
+ "n_queries": 323,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.19328748232833015,
+   "recall_100": 0.09468591006219289,
+   "empty_rate": 0.5077399380804953
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.30593933783412974,
+   "recall_100": 0.23332407907648695,
+   "empty_rate": 0.07739938080495357
+  },
+  "dense": {
+   "ndcg_cut_10": 0.3472864545686363,
+   "recall_100": 0.2976659245321355
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.3605609243746079,
+   "recall_100": 0.3030444741783152,
+   "keyword_empty_rate": 0.5077399380804953,
+   "at_ceiling_rate": 0.5170278637770898,
+   "multi_leg_docs_mean": 3.7058823529411766
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.34446534110281624,
+   "recall_100": 0.3087846774584911,
+   "keyword_empty_rate": 0.07739938080495357,
+   "at_ceiling_rate": 0.08359133126934984,
+   "multi_leg_docs_mean": 20.993808049535605
+  }
+ }
+}

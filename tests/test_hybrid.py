@@ -57,6 +57,12 @@ def test_ceiling_flags_dead_leg():
         assert not rep.empty_legs
 
 
+def test_all_legs_empty_is_not_a_ceiling():
+    scores, ranks = rrf_fuse({"a": [], "b": []})
+    rep = ceiling_report(scores, ranks)
+    assert not rep.at_ceiling and rep.empty_legs == ["a", "b"] and rep.max_score == 0.0
+
+
 def test_rrf_two_legs_beats_ceiling():
     scores, ranks = rrf_fuse({"a": ["x", "y"], "b": ["y", "z"]})
     assert scores["y"] > 1 / RRF_K >= scores["x"]
@@ -67,5 +73,6 @@ def test_rrf_two_legs_beats_ceiling():
 if __name__ == "__main__":
     test_and_quoted_leg_is_empty()
     test_ceiling_flags_dead_leg()
+    test_all_legs_empty_is_not_a_ceiling()
     test_rrf_two_legs_beats_ceiling()
     print("ok")

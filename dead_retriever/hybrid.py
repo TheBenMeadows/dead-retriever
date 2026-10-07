@@ -122,14 +122,16 @@ class CeilingReport:
 
 def ceiling_report(scores, ranks, k=RRF_K, eps=1e-12):
     """Was any document found by more than one leg? If not, the maximum fused
-    score is exactly 1/k (the top document of one leg, credited once)."""
+    score is exactly 1/k (the top document of one leg, credited once).
+    `at_ceiling` needs at least one result: a list where every leg returned
+    nothing has max 0, which is an outage, not a single live leg."""
     mx = max(scores.values(), default=0.0)
     multi = sum(1 for d in scores if sum(d in r for r in ranks.values()) > 1)
     empty = [n for n, r in ranks.items() if not r]
     return CeilingReport(
         max_score=mx, ceiling=1.0 / k, legs_configured=len(ranks),
         legs_nonempty=len(ranks) - len(empty), multi_leg_docs=multi,
-        at_ceiling=(len(ranks) > 1 and mx <= 1.0 / k + eps), empty_legs=empty)
+        at_ceiling=(len(ranks) > 1 and mx > 0 and mx <= 1.0 / k + eps), empty_legs=empty)
 
 
 class HybridRetriever:
