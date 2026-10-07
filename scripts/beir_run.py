@@ -1,7 +1,7 @@
 #!/opt/homebrew/bin/uv run --script
 # /// script
 # requires-python = ">=3.11"
-# dependencies = ["ir_datasets", "sentence-transformers", "pytrec_eval", "numpy", "einops", "torch"]
+# dependencies = ["ir_datasets", "sentence-transformers>=3,<4", "transformers>=4.44,<4.50", "pytrec_eval", "numpy", "einops", "torch"]
 #
 # [[tool.uv.index]]
 # name = "pytorch-cpu"
