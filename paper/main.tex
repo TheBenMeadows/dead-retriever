@@ -1,0 +1,145 @@
+\documentclass[11pt]{article}
+\usepackage[margin=1in]{geometry}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{graphicx}
+\usepackage[hidelinks]{hyperref}
+\usepackage{natbib}
+\usepackage{xcolor}
+\newcommand{\todo}[1]{\textcolor{red}{[#1]}}
+\setlength{\parskip}{0.35em}
+
+\title{A Score Ceiling Diagnoses a Dead Retriever in Reciprocal Rank Fusion}
+\author{Benjamin Meadows\\Independent Researcher\\\texttt{ben@benjaminmeadows.com}}
+\date{October 2026}
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+A hybrid search system fuses a keyword retriever and a vector retriever with reciprocal rank fusion (RRF). In the system described here, the keyword retriever returned no results for most natural-language queries for several months, and nobody noticed: the vector retriever always filled the result list, and the usual spot checks used short keyword queries, which still matched. The failure was visible the whole time in the fused scores. RRF credits a document $1/(k+r)$ from each retriever that ranks it at position $r$, so a document found by only one retriever scores at most $1/k$. When the maximum fused score across a result list is exactly $1/k$, no document was found by more than one retriever; across a set of queries that ceiling is the signature of a retriever that returns nothing, and it can be read from the scores alone. I give the derivation, the bug that caused it (quoting every token of an SQLite FTS5 query, which FTS5 reads as an implicit AND), before-and-after measurements on the production corpus, and two negative results from the same system that the dead leg had confounded. I then reproduce the effect on two public BEIR collections with two encoders: \todo{one-sentence BEIR headline}. Code is at \todo{repository URL}.
+\end{abstract}
+
+\section{The incident}
+
+The system is a personal search engine over about 30\,000 to 217\,000 text chunks per corpus, split across five SQLite databases that share one retrieval module. Each query runs two retrievers over the same chunks: an SQLite FTS5 index ranked by BM25 \citep{robertson2009bm25,sqlite_fts5}, and a 768-dimensional embedding index searched by exact cosine. The two ranked lists, each cut at depth $K=60$, are fused with reciprocal rank fusion at $k=60$ \citep{cormack2009rrf}.
+
+On 2026-08-07 a recency-decay feature was evaluated and rejected because RRF scores were ``flat near the top'': adjacent ranks differed by about 1.4\%, so even a 5\% age multiplier acted as a strong reranker rather than a tie-break. That flatness was recorded as a property of fusion. On 2026-08-18, while investigating why the keyword side rarely seemed to matter, I logged the keyword retriever's row counts for ten real queries. Five of five conversational queries matched zero chunks, as did a two-word place-name query. Only queries of two or three technical tokens matched anything. The keyword retriever had been inert on prose queries since the system was built, and all four sibling engines carried the same line of code.
+
+The fused scores had said so from the start. Over the top 100 fused results of those ten queries, the maximum score was exactly $1/60 = 0.01\overline{6}$. The values were $1/60, 1/61, 1/62, \ldots$ with gaps where per-file deduplication removed a chunk. That is one live retriever's rank list passed through the RRF formula, and the ``1.4\% flatness'' is $1/(k+r) - 1/(k+r+1) \approx 1/k^2$.
+
+\section{The ceiling}
+
+Let $L$ retrievers each return a ranked list cut at depth $K$, and let $r_\ell(d) \in \{0,\ldots,K-1\}$ be document $d$'s 0-based rank in retriever $\ell$'s list when present. Reciprocal rank fusion scores
+\[
+  s(d) \;=\; \sum_{\ell : d \in \text{list}_\ell} \frac{1}{k + r_\ell(d)} .
+\]
+A document present in exactly one list scores at most $1/k$ (rank 0). A document present in two lists scores at least $2/(k+K-1)$ (last place in both). The second bound exceeds the first whenever
+\[
+  \frac{2}{k+K-1} > \frac{1}{k} \iff K \le k ,
+\]
+so with the common setting $K \le k$ (here $K = k = 60$), every document found by two or more retrievers outscores every document found by one. Under that setting the following holds exactly:
+
+\begin{quote}
+If $\max_d s(d) \le 1/k$ over a result list, no document in it was retrieved by more than one retriever.
+\end{quote}
+
+For one query that is weak evidence: the retrievers may simply disagree. Across a set of queries it is strong evidence, because two retrievers over the same corpus that both return $K$ results almost always share at least one document somewhere in their top $K$. A retriever that returns nothing, however, shares nothing with anyone, every time. In the incident, the ceiling held on 10 of 10 queries, and the keyword leg had returned zero rows on 6 of them and fewer than $K$ on the rest.
+
+When $K > k$ the exact statement no longer holds (a document ranked deep in both lists can score below $1/k$), but the diagnostic survives in a weaker form: a maximum of exactly $1/k$ still means the top fused document was found by one retriever at its rank 0, and the sequence $1/k, 1/(k+1), 1/(k+2), \ldots$ in the fused scores is still the fingerprint of a single list. A system that keeps per-retriever ranks can test the condition directly, by counting documents credited by two or more retrievers. The point of the ceiling is that a system that logs only fused scores can test it too, and that the test costs nothing.
+
+\section{The bug}
+
+The keyword query builder was
+\begin{verbatim}
+fq = " ".join(f'"{t}"' for t in tokens)
+\end{verbatim}
+which, for the query \emph{how do I fix the empty feed}, produced \verb|"how" "do" "i" "fix" "the" "empty" "feed"|. FTS5 reads a sequence of phrases separated by whitespace as an implicit AND \citep[\S 3]{sqlite_fts5}: every quoted token must occur in the same row. Rows here were 1\,400-character chunks, so a six-token conversational query almost never matched. Two- or three-token technical queries did match, which is why spot checks during development passed, and an FTS5 syntax error was caught and ignored, so a malformed query also returned nothing without a trace. The vector retriever returns exactly $K$ results for any query, so result lists were always full.
+
+The fix has two parts, and the second is not cosmetic. Tokens are joined with \verb|OR| and ranked by BM25; a raw OR over all tokens matched about 100\,000 chunks and cost 161\,ms per query, so stopwords and tokens shorter than three characters are dropped first, after which a typical query matches about 3\,500 chunks in 2 to 4\,ms. If a query is all stopwords, the raw tokens are used.
+
+\section{Measurements on the production corpus}
+\label{sec:prod}
+
+The corpus is private; this section reports counts, timings and overlaps, with no query or document text. Ten real queries were replayed before and after the fix on the same shard (Table~\ref{tab:prod}).
+
+\begin{table}[h]
+\centering
+\begin{tabular}{lrr}
+\toprule
+ & implicit AND & OR + stopword drop \\
+\midrule
+Queries on which the keyword leg returned any row & 4 / 10 & 10 / 10 \\
+Queries with a document found by both legs & 0 / 10 & 10 / 10 \\
+Maximum fused score over the top 100 results & $1/60 = 0.0167$ & 0.025 -- 0.033 \\
+Keyword leg latency, conversational queries & -- & 2 -- 4\,ms (161\,ms before the stopword drop) \\
+\bottomrule
+\end{tabular}
+\caption{The keyword leg before and after the fix, ten real queries, one production shard. The ``before'' latency is omitted because a query that matches nothing is fast.}
+\label{tab:prod}
+\end{table}
+
+The same builder was present at a different line number in four sibling engines over four other corpora (the five have since been merged into one module). Each inherited the same behaviour regardless of corpus, which is the second lesson of the incident: a copied bug costs one investigation per copy to find and one patch per copy to fix.
+
+\section{Two negative results the dead leg confounded}
+
+Both of the following were measured on the same system before the keyword leg was fixed, and both verdicts stand; what changed is the explanation.
+
+\paragraph{Recency decay.} A multiplicative age penalty on fused scores (floor 0.85, time constant 180 days) changed the top-1 result on 4 of 7 real queries on a notes corpus, and the changes were as often wrong as right; a canonical note unedited for 338 days was demoted under a 13-day-old draft. On a second corpus spanning only 63 days the multiplier varied between 0.956 and 1.000 across every document and changed 0 of 8 top-1 results. The feature was rejected. The reason a 5\% multiplier could move top-1 at all was the flatness of the fused scores, and that flatness was the dead leg: a single retriever's $1/(k+r)$ sequence. Whether decay would help a fused list with real two-leg scores was not tested and is not claimed either way.
+
+\paragraph{A cheap contextual prefix.} Prepending \texttt{kind: title} to each chunk before embedding (the stored text and the keyword index unchanged, so the vector was the only variable) and re-embedding one corpus of 3\,046 documents and 30\,734 chunks took 25 minutes. On 15 realistic queries, 13 had an identical top-1, mean top-5 overlap was 80\%, one query improved and one regressed. The query predicted to benefit most returned an identical, still wrong, top 3. The change was not adopted. This is a title prefix, not the model-written situating context of \citet{anthropic2024contextual}, and the corpus was a weak test (documents whose title is their opening line), so it is a negative result for the cheap variant on that corpus, nothing wider. On this system the vector leg was the only live leg at the time, so the measurement is of the vector change alone, which was the intent.
+
+\section{Reproduction on public collections}
+\label{sec:beir}
+
+To check that the effect is a property of the query builder and not of one private corpus, I reran the five retrieval conditions on two BEIR test collections \citep{thakur2021beir}: SciFact \citep{wadden2020scifact}, 5\,183 abstracts and 300 claim queries, and NFCorpus \citep{boteva2016nfcorpus}, 3\,633 documents and 323 queries. SciFact queries are full sentences; NFCorpus queries are short titles. Two encoders were used: \texttt{nomic-embed-text-v1.5} \citep{nussbaum2024nomic}, the production encoder's public release, and \texttt{bge-base-en-v1.5} \citep{xiao2023cpack}, both 768-dimensional. Data came through \texttt{ir\_datasets} \citep{macavaney2021irdatasets} and metrics through \texttt{pytrec\_eval} \citep{vangysel2018pytrec}. Depth $K = 100$, $k = 60$; note that $K > k$ here, so the ceiling is read in its weak form and the two-leg count is measured directly.
+
+The conditions are: \textsc{bm25-and} (the buggy builder), \textsc{bm25-or} (the fix), \textsc{dense}, \textsc{hybrid-and} (dense + buggy keyword, RRF), \textsc{hybrid-or} (dense + fixed keyword, RRF). For each hybrid condition the per-query diagnostics are whether the keyword leg returned nothing, whether the maximum fused score sat at $1/k$, and how many documents were credited by both legs.
+
+\begin{table}[h]
+\centering
+\begin{tabular}{llrrrrr}
+\toprule
+Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & both-leg docs \\
+\midrule
+SciFact & bm25-and & \todo{} & \todo{} & \todo{} & -- & -- \\
+SciFact & bm25-or & \todo{} & \todo{} & \todo{} & -- & -- \\
+SciFact & dense & \todo{} & \todo{} & -- & -- & -- \\
+SciFact & hybrid-and & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+SciFact & hybrid-or & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+\midrule
+NFCorpus & bm25-and & \todo{} & \todo{} & \todo{} & -- & -- \\
+NFCorpus & bm25-or & \todo{} & \todo{} & \todo{} & -- & -- \\
+NFCorpus & dense & \todo{} & \todo{} & -- & -- & -- \\
+NFCorpus & hybrid-and & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+NFCorpus & hybrid-or & \todo{} & \todo{} & \todo{} & \todo{} & \todo{} \\
+\bottomrule
+\end{tabular}
+\caption{\todo{encoder} on two BEIR test collections. ``kw empty'' is the fraction of queries on which the keyword leg returned no document; ``at ceiling'' the fraction on which the maximum fused score was $1/k$; ``both-leg docs'' the mean number of documents credited by both retrievers. Figures for the second encoder are in the appendix.}
+\label{tab:beir}
+\end{table}
+
+\todo{Two or three sentences reading the table: how often the AND builder returned nothing on sentence queries vs title queries; whether hybrid-and collapsed to dense; the ceiling rate as a detector.}
+
+\section{Related work}
+
+Reciprocal rank fusion was proposed by \citet{cormack2009rrf}, who set $k=60$ by experiment; that constant has survived into most hybrid-search implementations unchanged, which is what makes the $1/60$ ceiling recognisable on sight. \citet{bruch2023fusion} analyse fusion functions for hybrid lexical and semantic retrieval and show when RRF is and is not competitive with a tuned convex combination; this paper is about a failure mode upstream of that choice, where one of the lists is empty. BEIR \citep{thakur2021beir} established that BM25 is a hard zero-shot baseline, which is part of why a hybrid system that silently drops it loses more than it appears to. The FTS5 query grammar is documented in the SQLite manual \citep{sqlite_fts5}; the implicit-AND reading of adjacent phrases is stated there, and the builder here simply did not follow it.
+
+\section{Limitations}
+
+The production measurements are on ten and fifteen queries over private corpora, reported as aggregates; they establish that the failure happened and how it looked, not an effect size. The public reproduction uses two small collections and two encoders. The ceiling statement is exact only for $K \le k$; the common $K = 100, k = 60$ setting (used in Section~\ref{sec:beir}) gets the weaker form. The recency and prefix results are negative results on one system each and are not claims about those techniques in general.
+
+\section{What to check in your own system}
+
+Log the maximum fused score per query. If it is $1/k$ more than occasionally, one of your retrievers is returning nothing. Log each retriever's row count per query alongside it; an FTS layer that returns zero rows for a six-word query is broken, not selective. Test the keyword builder with a conversational sentence, not a two-word term. And if your fusion scores look ``flat'', compute $1/(k+r) - 1/(k+r+1)$ before concluding anything about fusion.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Second encoder}
+\todo{Table for the second encoder, same layout as Table~\ref{tab:beir}.}
+
+\end{document}
