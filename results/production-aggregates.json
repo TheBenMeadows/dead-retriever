@@ -1,0 +1,33 @@
+{
+ "_comment": "Aggregate measurements from the private production system, recorded at the time in the operator's engineering notes. No query text, document text or titles. These are the only production figures the paper uses; they are reproducible by nobody but the operator and are labelled as such in the paper.",
+ "system": {
+  "chunk_chars": 1400,
+  "rrf_k": 60,
+  "per_leg_depth": 60,
+  "embedding_dim": 768,
+  "corpus_chunk_counts_range": [30734, 217149],
+  "engines_sharing_the_builder": 5
+ },
+ "keyword_leg_2026-08-18": {
+  "queries": 10,
+  "queries_keyword_returned_rows_before": 4,
+  "queries_keyword_returned_rows_after": 10,
+  "queries_with_document_in_both_legs_before": 0,
+  "queries_with_document_in_both_legs_after": 10,
+  "conversational_queries_with_zero_rows_before": [5, 5],
+  "max_fused_score_top100_before": 0.016667,
+  "max_fused_score_top100_after_range": [0.025, 0.033],
+  "keyword_latency_ms_raw_or_no_stopword_drop": 161,
+  "keyword_latency_ms_after_range": [2, 4],
+  "chunks_matched_raw_or_approx": 100000,
+  "chunks_matched_after_approx": 3500
+ },
+ "recency_decay_2026-08-07": {
+  "notes_corpus": {"queries": 7, "top1_changed": 4, "floor": 0.85, "tau_days": 180, "demoted_canonical_note_age_days": 338, "promoted_note_age_days": 13},
+  "sessions_corpus": {"queries": 8, "top1_changed": 0, "span_days": 63, "multiplier_range": [0.956, 1.0]}
+ },
+ "title_prefix_2026-08-18": {
+  "docs": 3046, "chunks": 30734, "reembed_seconds": 1498,
+  "queries": 15, "identical_top1": 13, "mean_top5_overlap": 0.80, "improved": 1, "regressed": 1
+ }
+}

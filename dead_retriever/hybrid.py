@@ -40,12 +40,17 @@ def tokens(q):
 def fts_query(q, mode="or_bm25"):
     """FTS5 MATCH string for a natural-language query.
 
-    and_quoted: '"how" "do" "i" "fix" "the" "feed"'  (implicit AND)
-    or_bm25:    '"fix" OR "feed"'
+    and_quoted: '"how" "do" "i" "fix" "the" "feed"'  (implicit AND; a token
+                that FTS5's tokenizer splits further, such as "il-6", becomes
+                a phrase, which is an adjacency constraint)
+    or_raw:     '"how" OR "do" OR "i" OR "fix" OR "the" OR "feed"'
+    or_bm25:    '"fix" OR "empty" OR "feed"'  (stopwords and tokens under 3 chars dropped)
     """
     toks = tokens(q)
     if mode == "and_quoted":
         return " ".join(f'"{t}"' for t in toks)
+    if mode == "or_raw":
+        return " OR ".join(f'"{t}"' for t in toks)
     if mode == "or_bm25":
         kw = [t for t in toks if len(t) > 2 and t not in FTS_STOP] or toks
         return " OR ".join(f'"{t}"' for t in kw)
@@ -64,13 +69,17 @@ class KeywordIndex:
         self.c.commit()
 
     def search(self, match, limit):
-        """Ranked doc ids for an FTS5 MATCH string; [] on a syntax error."""
+        """Ranked doc ids for an FTS5 MATCH string. A query the FTS5 parser
+        rejects returns []; any other database error is raised, so an outage
+        cannot pass as an empty result."""
         try:
             cur = self.c.execute(
                 "SELECT doc_id FROM fts WHERE fts MATCH ? ORDER BY bm25(fts) LIMIT ?", (match, limit))
             return [r[0] for r in cur]
-        except sqlite3.OperationalError:
-            return []
+        except sqlite3.OperationalError as e:
+            if "syntax error" in str(e) or "no such column" in str(e):
+                return []
+            raise
 
 
 class DenseIndex:
@@ -121,10 +130,14 @@ class CeilingReport:
 
 
 def ceiling_report(scores, ranks, k=RRF_K, eps=1e-12):
-    """Was any document found by more than one leg? If not, the maximum fused
-    score is exactly 1/k (the top document of one leg, credited once).
-    `at_ceiling` needs at least one result: a list where every leg returned
-    nothing has max 0, which is an outage, not a single live leg."""
+    """Overlap check from the fused scores. With per-leg depth K <= k, a
+    document in two legs scores above 1/k, so max <= 1/k means no document
+    was credited by more than one leg; with K > k the inequality is not
+    exact (rank k in both legs scores exactly 1/k) and `multi_leg_docs`, which
+    counts overlap directly from the ranks, is the measurement. `k` must be
+    the constant the scores were fused with. `at_ceiling` needs at least one
+    result: a list where every leg returned nothing has max 0, which is an
+    outage, not a single live leg."""
     mx = max(scores.values(), default=0.0)
     multi = sum(1 for d in scores if sum(d in r for r in ranks.values()) > 1)
     empty = [n for n, r in ranks.items() if not r]
