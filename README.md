@@ -29,6 +29,10 @@ python3 review/orrery-audit.py
 
 The runner downloads the BEIR split through `ir_datasets` and the encoder through `sentence-transformers`. Embeddings are cached under `cache/` with a signature of model, prefix, document count and text hash. `nomic-embed-text-v1.5` needs a 4.x `transformers`, which the script pins.
 
+## License
+
+The code, scripts, tests and result files are under the MIT License (see `LICENSE`). The manuscript in `paper/` is excluded from that license and carries the license shown on its arXiv listing.
+
 ## Provenance
 
 `hybrid.py` is extracted from a private retrieval module (`rag_core.py`, sha256 `fc7153438f2f5a332bb38eec3476b4635196ad40ebd84a1d72659910bcf19ef4`, 2026-10-07). The private corpus, its queries and its documents are not part of this repository. The paper reports only aggregate numbers from it.
