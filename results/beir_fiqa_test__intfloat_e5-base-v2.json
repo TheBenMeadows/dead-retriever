@@ -1,0 +1,49 @@
+{
+ "dataset": "beir/fiqa/test",
+ "model": "intfloat/e5-base-v2",
+ "depth": 100,
+ "rrf_k": 60,
+ "n_docs": 57638,
+ "n_queries": 648,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.01363216111432012,
+   "recall_100": 0.015277777777777779,
+   "empty_rate": 0.8179012345679012,
+   "mean_query_ms": 3.2591779320649006
+  },
+  "bm25_or_raw": {
+   "ndcg_cut_10": 0.23303809052065316,
+   "recall_100": 0.5206037361129954,
+   "empty_rate": 0.0,
+   "mean_query_ms": 89.39611233800682
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.22408679700516937,
+   "recall_100": 0.5081195467769543,
+   "empty_rate": 0.0,
+   "mean_query_ms": 15.479901174327928
+  },
+  "dense": {
+   "ndcg_cut_10": 0.3986663557596119,
+   "recall_100": 0.732044310285051,
+   "mean_query_ms": 6.552540330232413
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.3888066965901325,
+   "recall_100": 0.7322500716019235,
+   "keyword_empty_rate": 0.8179012345679012,
+   "at_ceiling_rate": 0.8842592592592593,
+   "multi_leg_docs_mean": 0.35648148148148145,
+   "mean_query_ms": 13.476075157465553
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.3615226982966812,
+   "recall_100": 0.7111913806358251,
+   "keyword_empty_rate": 0.0,
+   "at_ceiling_rate": 0.0030864197530864196,
+   "multi_leg_docs_mean": 19.03858024691358,
+   "mean_query_ms": 36.435344537014515
+  }
+ }
+}
