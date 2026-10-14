@@ -73,7 +73,7 @@ assigns a GPU that the image's torch was not built for, `cuda_ok` is false and
 `cuda_error` holds the exception. Check this before trusting the timing columns.
 The numbers are computed the same way on CPU, only more slowly.
 
-The pinned commit (`d38d5c1`) is on branch `kaggle/irrj-expansion`. GitHub serves a
+The pinned commit (`031d657`) is on branch `kaggle/irrj-expansion`. GitHub serves a
 fetch by SHA only while the commit is reachable from some ref. If the branch
 is squash-merged and deleted, set `PINNED_COMMIT` to the corresponding commit on
 `main` before pushing the kernel again.
