@@ -34,9 +34,10 @@ from pathlib import Path
 T0 = time.time()
 
 REPO_URL = "https://github.com/TheBenMeadows/dead-retriever.git"
-PINNED_COMMIT = "699d7dd5f86b34f0995f3c688f5930be5063644e"
-DATASETS = ("beir/scifact/test", "beir/nfcorpus/test")
-MODELS = ("BAAI/bge-base-en-v1.5", "nomic-ai/nomic-embed-text-v1.5")
+PINNED_COMMIT = "d38d5c193a8ae1ef04dcc5d00b14a98525c8b232"
+DATASETS = ("beir/scifact/test", "beir/nfcorpus/test", "beir/arguana", "beir/scidocs",
+            "beir/fiqa/test", "beir/trec-covid")
+MODELS = ("BAAI/bge-base-en-v1.5", "nomic-ai/nomic-embed-text-v1.5", "intfloat/e5-base-v2")
 CONDITIONS = ("bm25_and", "bm25_or_raw", "bm25_or", "dense", "hybrid_and", "hybrid_or")
 ON_KAGGLE = Path("/kaggle/working").is_dir()
 TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
