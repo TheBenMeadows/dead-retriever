@@ -10,7 +10,7 @@ dataset and encoder:
 
 | datasets | encoders |
 |---|---|
-| `beir/scifact/test`, `beir/nfcorpus/test` | `BAAI/bge-base-en-v1.5`, `nomic-ai/nomic-embed-text-v1.5` |
+| `beir/scifact/test`, `beir/nfcorpus/test`, `beir/arguana`, `beir/scidocs`, `beir/fiqa/test`, `beir/trec-covid` | `BAAI/bge-base-en-v1.5`, `nomic-ai/nomic-embed-text-v1.5`, `intfloat/e5-base-v2` |
 
 The image's own CUDA build of torch is kept, and only the other packages are installed.
 If the image has no torch, the CPU wheel named in the header is installed. If
@@ -28,7 +28,7 @@ extension, same import name, published as wheels) is installed in its place.
 | `manifest.json` | commit, package versions, GPU name, dataset sizes, per-run status and timing |
 | `logs/<tag>.log` | full stdout/stderr of each `beir_run.py` invocation |
 
-`<tag>` is `beir_<dataset>_test__<org>_<model>`, the same naming `results/` uses.
+`<tag>` is the dataset id and the model id with `/` replaced by `_`, joined by `__` (`beir_scifact_test__BAAI_bge-base-en-v1.5`, `beir_arguana__intfloat_e5-base-v2`), the same naming `results/` uses.
 To compare against the committed numbers, use
 `diff <(jq -S '.conditions | map_values({ndcg_cut_10, recall_100})' out/results/<tag>.json) <(jq -S '.conditions | map_values({ndcg_cut_10, recall_100})' results/<tag>.json)`
 (timing fields differ by construction).
@@ -73,7 +73,7 @@ assigns a GPU that the image's torch was not built for, `cuda_ok` is false and
 `cuda_error` holds the exception. Check this before trusting the timing columns.
 The numbers are computed the same way on CPU, only more slowly.
 
-The pinned commit (`699d7dd`) is on branch `kaggle/beir-kernel`. GitHub serves a
+The pinned commit (`d38d5c1`) is on branch `kaggle/irrj-expansion`. GitHub serves a
 fetch by SHA only while the commit is reachable from some ref. If the branch
 is squash-merged and deleted, set `PINNED_COMMIT` to the corresponding commit on
 `main` before pushing the kernel again.
