@@ -522,7 +522,7 @@
 - PASS  prose: FiQA buggy excess 35 to 43 of 118 (29.7 to 36.4%)  (35-43/118)
 - PASS  prose: TREC-COVID buggy excess 7 to 8 of 13 (53.8 to 61.5%)  (7-8/13)
 - PASS  prose: 174 of 176 shared nothing; two FiQA fixed-builder runs (bge, e5) with 100 keyword docs and one shared  ([('bge', 'FiQA', 'hybrid_or', 100, 1), ('e5', 'FiQA', 'hybrid_or', 100, 1)])
-- PASS  prose: ceiling over a leg of four or more on 39 runs, all FiQA, TREC-COVID, SciDocs  (39 {'FiQA', 'SciDocs', 'TREC-COVID'})
+- PASS  prose: ceiling over a leg of four or more on 39 runs, all FiQA, TREC-COVID, SciDocs  (39 ['FiQA', 'SciDocs', 'TREC-COVID'])
 - PASS  prose: pooled without ArguAna 137/726 (18.9%), 35/588 (6.0%), 4/6,636 (0.1%)  ({'1-3': (137, 726), '4-49': (35, 588), '50-100': (4, 6636)})
 - PASS  prose: short-list rate 13/330, 18/141, 90/219, 16/18  ({'NFCorpus': (13, 330), 'SciDocs': (18, 141), 'FiQA': (90, 219), 'TREC-COVID': (16, 18)})
 - PASS  prose: corpus sizes 3.6k, 26k, 58k, 171k  ({'SciFact': 5183, 'NFCorpus': 3633, 'ArguAna': 8674, 'SciDocs': 25657, 'FiQA': 57638, 'TREC-COVID': 171332})

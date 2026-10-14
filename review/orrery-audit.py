@@ -282,7 +282,7 @@ def check_prose_beir():
           len(shared) == 2 and sorted(s[0] for s in shared) == ["bge", "e5"] and all(s[1] == "FiQA" and s[2] == "hybrid_or" and s[3] == 100 and s[4] == 1 for s in shared)
           and said("In 174 of the 176"), f"{shared}")
     check("prose: ceiling over a leg of four or more on 39 runs, all FiQA, TREC-COVID, SciDocs",
-          len(long_) == 39 and set(long_) <= {"FiQA", "TREC-COVID", "SciDocs"} and said("on 39 runs, all on FiQA, TREC-COVID and SciDocs"), f"{len(long_)} {set(long_)}")
+          len(long_) == 39 and set(long_) <= {"FiQA", "TREC-COVID", "SciDocs"} and said("on 39 runs, all on FiQA, TREC-COVID and SciDocs"), f"{len(long_)} {sorted(set(long_))}")
     nat = json.loads((ROOT / "results" / "natural_lengths.json").read_text())
     nb = {b["n_keyword"]: (b["fired"], b["total"]) for b in nat["buckets"]}
     check("prose: pooled without ArguAna 137/726 (18.9%), 35/588 (6.0%), 4/6,636 (0.1%)",
