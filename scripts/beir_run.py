@@ -43,11 +43,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from dead_retriever import (RRF_K, DenseIndex, HybridRetriever, KeywordIndex,  # noqa: E402
                             ceiling_report, fts_query)
 
-# Each encoder's documented retrieval prefixes: nomic prefixes both sides; the
-# bge v1.5 model card prescribes an instruction on short queries only.
-DOC_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_document: ", "nomic-ai/nomic-embed-text-v1": "search_document: "}
+# Each encoder's documented retrieval prefixes: nomic and e5 prefix both sides;
+# the bge v1.5 model card prescribes an instruction on short queries only.
+DOC_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_document: ", "nomic-ai/nomic-embed-text-v1": "search_document: ",
+              "intfloat/e5-base-v2": "passage: "}
 QRY_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_query: ", "nomic-ai/nomic-embed-text-v1": "search_query: ",
-              "BAAI/bge-base-en-v1.5": "Represent this sentence for searching relevant passages: "}
+              "BAAI/bge-base-en-v1.5": "Represent this sentence for searching relevant passages: ",
+              "intfloat/e5-base-v2": "query: "}
 CONDITIONS = ("bm25_and", "bm25_or_raw", "bm25_or", "dense", "hybrid_and", "hybrid_or")
 
 
