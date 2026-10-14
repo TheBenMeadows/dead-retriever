@@ -142,8 +142,9 @@ def run_query(cond, q, qv, kw, dense, depth):
                     "n_keyword": len(ranks.get("keyword", {})), "n_dense": len(ranks.get("dense", {}))}
 
 
-def evaluate(run, qrels):
-    """Mean nDCG@10 and Recall@100. A document whose id equals the query's id
+def evaluate(run, qrels, cond=None, sink=None):
+    """Mean nDCG@10 and Recall@100; with `sink`, one JSON line per query
+    (qid, condition, nDCG@10, Recall@100) for paired tests. A document whose id equals the query's id
     is removed before scoring, as BEIR's evaluator does by default
     (ignore_identical_ids): ArguAna's queries are corpus documents. Fusion and
     the ceiling diagnostics see the unfiltered lists."""
@@ -151,6 +152,11 @@ def evaluate(run, qrels):
     run = {q: {d: s for d, s in docs.items() if d != q} for q, docs in run.items()}
     ev = pytrec_eval.RelevanceEvaluator(qrels, {"ndcg_cut_10", "recall_100"})
     per_q = ev.evaluate(run)
+    if sink is not None:
+        for qid, v in sorted(per_q.items()):
+            sink.write(json.dumps({"qid": qid, "condition": cond, "ndcg_cut_10": v["ndcg_cut_10"],
+                                   "recall_100": v["recall_100"]}) + "\n")
+        sink.flush()
     n = len(per_q) or 1
     return {m: sum(v[m] for v in per_q.values()) / n for m in ("ndcg_cut_10", "recall_100")}
 
@@ -238,12 +244,13 @@ def main():
     print(f"indexes ready in {time.time() - t0:.0f}s", file=sys.stderr)
 
     perq = (out / f"{tag}.perquery.jsonl").open("w")
+    pereval = (out / f"{tag}.pereval.jsonl").open("w")
     for cond in CONDITIONS:
         run, diags, secs = {}, [], 0.0
         for (qid, q), qv in zip(queries, qvec):
             if deadline.passed():
                 if run:
-                    results["conditions"][cond] = {**evaluate(run, qrels), **summarize_diag(diags),
+                    results["conditions"][cond] = {**evaluate(run, qrels, cond, pereval), **summarize_diag(diags),
                                                    "mean_query_ms": 1000.0 * secs / len(run),
                                                    "n_queries_evaluated": len(run)}
                 stop_at_deadline(summary, results, f"{cond} after {len(run)} queries", perq)
@@ -253,12 +260,13 @@ def main():
             run[qid] = {str(d): float(s) for d, s in scores.items()}
             diags.append(diag)
             perq.write(json.dumps({"qid": qid, "condition": cond, **diag}) + "\n")
-        results["conditions"][cond] = {**evaluate(run, qrels), **summarize_diag(diags),
+        results["conditions"][cond] = {**evaluate(run, qrels, cond, pereval), **summarize_diag(diags),
                                        "mean_query_ms": 1000.0 * secs / max(1, len(queries))}
         print(cond, json.dumps(results["conditions"][cond]), file=sys.stderr)
         perq.flush()
         write_summary(summary, {**results, "partial": True})
     perq.close()
+    pereval.close()
 
     write_summary(summary, results)
     print(summary)
