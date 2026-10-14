@@ -143,7 +143,12 @@ def run_query(cond, q, qv, kw, dense, depth):
 
 
 def evaluate(run, qrels):
+    """Mean nDCG@10 and Recall@100. A document whose id equals the query's id
+    is removed before scoring, as BEIR's evaluator does by default
+    (ignore_identical_ids): ArguAna's queries are corpus documents. Fusion and
+    the ceiling diagnostics see the unfiltered lists."""
     import pytrec_eval
+    run = {q: {d: s for d, s in docs.items() if d != q} for q, docs in run.items()}
     ev = pytrec_eval.RelevanceEvaluator(qrels, {"ndcg_cut_10", "recall_100"})
     per_q = ev.evaluate(run)
     n = len(per_q) or 1
@@ -215,7 +220,7 @@ def main():
         qrels = {qid: qrels[qid] for qid, _ in queries}
     print(f"{a.dataset}: {len(docs)} docs, {len(queries)} queries with qrels", file=sys.stderr)
 
-    results = {"dataset": a.dataset, "model": a.model, "depth": a.depth, "rrf_k": RRF_K,
+    results = {"dataset": a.dataset, "model": a.model, "depth": a.depth, "rrf_k": RRF_K, "ignore_identical_ids": True,
                "n_docs": len(docs), "n_queries": len(queries), "conditions": {}}
     out = Path(a.out)
     out.mkdir(parents=True, exist_ok=True)
