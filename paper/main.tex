@@ -1,26 +1,36 @@
-\documentclass[11pt]{article}
-\usepackage[margin=1in]{geometry}
+\documentclass[twoside,a4paper,11pt]{article}
+\usepackage{irrj2e}
 \usepackage[T1]{fontenc}
 \usepackage{lmodern}
 \usepackage{amsmath}
 \usepackage{booktabs}
-\usepackage{graphicx}
-\usepackage[hidelinks]{hyperref}
-\usepackage{natbib}
 \usepackage{xcolor}
+\usepackage{lastpage}
 \newcommand{\todo}[1]{\textcolor{red}{[#1]}}
-\setlength{\parskip}{0.35em}
 
-\title{A Score Ceiling in Reciprocal Rank Fusion Detects Zero Overlap,\\and Found a Dead Retriever}
-\author{Benjamin Meadows\\Independent Researcher\\\texttt{ben@benjaminmeadows.com}}
-\date{October 2026}
+\irrjheading{-}{2026}{1-\pageref{LastPage}}{10/26}{-}{-}
+\ShortHeadings{A Score Ceiling in Reciprocal Rank Fusion Detects Zero Overlap}{Meadows}
+\firstpageno{1}
 
 \begin{document}
+
+\title{A Score Ceiling in Reciprocal Rank Fusion\\Detects Zero Overlap, and Found a Dead Retriever}
+
+\author{\name Benjamin Meadows \email ben@benjaminmeadows.com \\
+       \addr Independent Researcher\\
+       ORCID 0009-0007-9698-0910}
+
+\editor{-}
+
 \maketitle
 
-\begin{abstract}
+\begin{abstract}%
 A hybrid search system fuses a keyword retriever and a vector retriever with reciprocal rank fusion (RRF). In the system described here, the keyword retriever returned no results for most natural-language queries from the system's first version until 2026-08-18, and nobody noticed: the vector retriever always filled the result list, and the usual spot checks used short keyword queries, which still matched. The failure was visible the whole time in the fused scores. RRF credits a document $1/(k+r)$ from each retriever that ranks it at position $r$, so with per-retriever depth $K \le k$ a document found by two retrievers scores above $1/k$ and a document found by one scores at most $1/k$. A result list whose maximum fused score is $1/k$ therefore contains no document that both retrievers returned. That is a statement about overlap, not about either retriever: two working retrievers can return disjoint lists, and in the incident four of ten queries did. Across a set of queries, a ceiling that never lifts means no document is ever reinforced by two retrievers, and the per-retriever row counts, which the ceiling tells you to go and read, say why. I give the derivation and its limits, the bug (quoting every token of an SQLite FTS5 query, which FTS5 reads as an implicit AND), before-and-after aggregates from the production system, two negative results measured beside the dead leg, and a reproduction on two BEIR collections with two encoders: the builder returns nothing for 98.0\% of SciFact's sentence queries and 50.8\% of NFCorpus's title queries, the ceiling rate tracks the empty-leg rate to within one percentage point, and repairing the leg restores overlap, raises recall at depth for the weaker encoder, and does not improve nDCG@10 for either. Code, results, per-query diagnostics and this paper's source are at \url{https://github.com/TheBenMeadows/dead-retriever}.
 \end{abstract}
+
+\begin{keywords}
+  reciprocal rank fusion, hybrid retrieval, rank fusion diagnostics, SQLite FTS5, BM25, dense retrieval
+\end{keywords}
 
 \section{The incident}
 
@@ -66,10 +76,11 @@ The fix has two parts, and the second is not cosmetic. Tokens are joined with \v
 \section{Measurements on the production corpus}
 \label{sec:prod}
 
-The corpus is private. This section reports counts, timings and overlaps recorded at the time, with no query or document text; the figures are in \texttt{results/production-aggregates.json} in the released repository and are checkable by nobody but the operator, which is the reason the public reproduction exists. Ten real queries were replayed before and after the fix on the same shard (Table~\ref{tab:prod}).
+The corpus is private. This section reports counts, timings and overlaps recorded at the time, with no query or document text; the figures are in \path{results/production-aggregates.json} in the released repository and are checkable by nobody but the operator, which is the reason the public reproduction exists. Ten real queries were replayed before and after the fix on the same shard (Table~\ref{tab:prod}).
 
 \begin{table}[h]
 \centering
+\small
 \begin{tabular}{lrr}
 \toprule
  & implicit AND & OR + stopword drop \\
@@ -103,6 +114,7 @@ The conditions are \textsc{bm25-and} (the buggy builder), \textsc{bm25-or-raw} (
 
 \begin{table}[h]
 \centering
+\small
 \begin{tabular}{llrrrrrr}
 \toprule
 Collection & Condition & nDCG@10 & R@100 & ms & kw empty & at ceiling & both-leg \\
@@ -138,6 +150,7 @@ NFCorpus & hybrid-or & 0.363 & 0.337 & 1.8 & 7.7\% & 8.7\% & 21.3 \\
 
 \begin{table}[h]
 \centering
+\small
 \begin{tabular}{rrrrr}
 \toprule
  & \multicolumn{2}{c}{SciFact} & \multicolumn{2}{c}{NFCorpus} \\
@@ -173,7 +186,8 @@ Log, per query, each retriever's row count and the maximum fused score. If the m
 
 The code, the experiment and audit scripts, and the text of this paper were drafted with Claude (Anthropic) running in Claude Code, directed by the author, who operated the production system in which the incident occurred, chose what to measure, ruled on every claim and takes responsibility for all content. Drafts were reviewed by GPT-6 (Astra and Sol) and SWE-2 through Cognition's Devin CLI, by DeepSeek V4.1 Flash and GPT-5.6, and by Gemini; every defect a reviewer reported was reproduced or refuted by a script before it changed the paper, and the review records, probes and the audit script that checks every number in the text against the result files are in the repository. Every reference was checked against a primary listing.
 
-\bibliographystyle{plainnat}
+\acks{This work received no funding. The author declares no competing interests.}
+
 \bibliography{refs}
 
 \appendix
@@ -182,6 +196,7 @@ The code, the experiment and audit scripts, and the text of this paper were draf
 
 \begin{table}[h]
 \centering
+\small
 \begin{tabular}{llrrrrrr}
 \toprule
 Collection & Condition & nDCG@10 & R@100 & ms & kw empty & at ceiling & both-leg \\
