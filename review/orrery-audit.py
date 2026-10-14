@@ -141,7 +141,7 @@ def check_table1():
     for name, (b, a) in exp.items():
         r = rows.get(name)
         check(f"Table 1: {name}", r is not None and r[1] == b and r[2] == a, f"tex {r[1:] if r else None} vs aggregates {(b, a)}")
-    r = rows.get("Maximum fused score over the top 100 results")
+    r = rows.get("Maximum fused score over the fused list")
     check("Table 1: max fused score before", r is not None and "0.0167" in r[1] and abs(k["max_fused_score_top100_before"] - 1 / 60) < 1e-6, f"{r[1] if r else None}")
     lo, hi = k["max_fused_score_top100_after_range"]
     check("Table 1: max fused score after range", r is not None and f"{lo}" in r[2] and f"{hi}" in r[2], f"{r[2] if r else None}")
@@ -184,6 +184,11 @@ def r3(x):
     return round(x + 0.0, 3)
 
 
+def pdiff(e, c, a, b, m):
+    """Difference of the PRINTED (3-decimal) values, which is what the prose quotes."""
+    return round(r3(cond(e, c, a)[m]) - r3(cond(e, c, b)[m]), 3)
+
+
 def check_prose_beir():
     pq = {(e, c): perquery(e, c) for e in ENC for c in COLL}
     # The leg: AND empty counts, OR empties, content tokens and their ordering.
@@ -194,7 +199,10 @@ def check_prose_beir():
         check(f"prose: AND empty {e} of {n} on {coll}", got == e and len(by) == n and KF[DATASET[coll]]["and_empty"] == e, f"{got}/{len(by)}")
     check("prose: the five empty counts are named", said("294 of SciFact's 300", "942 of SciDocs's 1\\,000", "530 of FiQA's 648", "37 of TREC-COVID's 50", "164 of NFCorpus's 323"), "")
     or_empty = {c: sum(1 for r in pq[("bge", c)].values() if r["hybrid_or"]["keyword_empty"]) for c in COLL}
-    check("prose: after the fix only NFCorpus has empty legs, 25 (7.7%)", or_empty["NFCorpus"] == 25 and all(v == 0 for c, v in or_empty.items() if c != "NFCorpus") and said("25 title queries (7.7\\%)"), f"{or_empty}")
+    raw_empty = {c: cond("bge", c, "bm25_or_raw")["empty_rate"] for c in COLL}
+    check("prose: after the fix only NFCorpus has empty legs, 25 (7.7%), and the raw OR is empty on the same 25",
+          or_empty["NFCorpus"] == 25 and all(v == 0 for c, v in or_empty.items() if c != "NFCorpus") and round(raw_empty["NFCorpus"] * 323) == 25
+          and said("25 title queries (7.7\\%)", "the raw OR is empty on the same 25"), f"{or_empty} raw {raw_empty['NFCorpus']:.4f}")
     five = ["SciFact", "SciDocs", "FiQA", "TREC-COVID", "NFCorpus"]
     kept = [round(KF[DATASET[c]]["kept_tokens_mean"], 1) for c in five]
     rate = [round(100 * cond("bge", c, "hybrid_and")["keyword_empty_rate"], 1) for c in five]
@@ -202,56 +210,83 @@ def check_prose_beir():
           kept == [8.7, 7.3, 6.2, 5.7, 2.5] and rate == [98.0, 94.2, 81.8, 74.0, 50.8] and kept == sorted(kept, reverse=True) and rate == sorted(rate, reverse=True)
           and said("8.7 content tokens per query on SciFact, 7.3 on SciDocs, 6.2 on FiQA, 5.7 on TREC-COVID and 2.5 on NFCorpus", "98.0, 94.2, 81.8, 74.0 and 50.8\\%"), f"{kept} {rate}")
     toks = {c: KF[DATASET[c]]["tokens_mean"] for c in COLL}
-    check("prose: NFCorpus shortest queries; TREC-COVID about as long as FiQA and SciDocs; ArguAna 195",
-          min(toks, key=toks.get) == "NFCorpus" and abs(toks["TREC-COVID"] - toks["FiQA"]) < 1 and abs(toks["TREC-COVID"] - toks["SciDocs"]) < 1.5 and round(toks["ArguAna"]) == 195, f"{toks}")
+    raw_order = sorted(five, key=lambda c: -toks[c])
+    inversions = sum(1 for i in range(4) if raw_order[i] != five[i])
+    check("prose: SciDocs is fourth by raw tokens and second by empty rate",
+          min(toks, key=toks.get) == "NFCorpus" and abs(toks["TREC-COVID"] - toks["FiQA"]) < 1 and abs(toks["TREC-COVID"] - toks["SciDocs"]) < 1.5
+          and raw_order[3] == "SciDocs" and five[1] == "SciDocs" and said("puts SciDocs fourth of the five; counting content words moves it to second"), f"raw order {raw_order}")
+    sizes = {c: RES[f"{COLL[c]}__{ENC['bge']}.json"]["n_docs"] for c in COLL}
+    s5 = [sizes[c] for c in five]
+    check("prose: corpus size is NOT claimed to follow the content-token ordering", s5 != sorted(s5) and s5 != sorted(s5, reverse=True)
+          and not said("differ along the same ordering") and said("the collections also differ in corpus size, document length and vocabulary"), f"{s5}")
     # Stopword drop.
     b = {c: cond("bge", c, "bm25_or") for c in COLL}
     raw = {c: cond("bge", c, "bm25_or_raw") for c in COLL}
-    ratio = {c: raw[c]["mean_query_ms"] / b[c]["mean_query_ms"] for c in COLL}
-    check("prose: raw OR 2.6 to 18 times slower", round(min(ratio.values()), 1) == 2.6 and round(max(ratio.values())) == 18 and said("2.6 to 18 times slower"), f"{ {c: round(v, 2) for c, v in ratio.items()} }")
+    ratios = {(c, e): cond(e, c, "bm25_or_raw")["mean_query_ms"] / cond(e, c, "bm25_or")["mean_query_ms"] for c in COLL for e in ENC}
+    check("prose: raw OR 2.5 to 18 times slower over all runs", round(min(ratios.values()), 1) == 2.5 and round(max(ratios.values())) == 18 and said("2.5 to 18 times slower"), f"min {min(ratios.values()):.3f} max {max(ratios.values()):.2f}")
     check("prose: 10.2 vs 3.0 ms SciFact, 2.1 vs 0.8 NFCorpus, 782 vs 44 ArguAna",
           (round(raw["SciFact"]["mean_query_ms"], 1), round(b["SciFact"]["mean_query_ms"], 1)) == (10.2, 3.0)
           and (round(raw["NFCorpus"]["mean_query_ms"], 1), round(b["NFCorpus"]["mean_query_ms"], 1)) == (2.1, 0.8)
           and (round(raw["ArguAna"]["mean_query_ms"]), round(b["ArguAna"]["mean_query_ms"])) == (782, 44), "")
     d_nd = {c: raw[c]["ndcg_cut_10"] - b[c]["ndcg_cut_10"] for c in COLL}
-    check("prose: raw OR within 0.008 nDCG@10 of OR on five collections",
-          all(abs(v) <= 0.0085 for c, v in d_nd.items() if c != "FiQA") and abs(d_nd["FiQA"]) > 0.0085, f"{ {c: round(v, 4) for c, v in d_nd.items()} }")
+    check("prose: raw OR within 0.009 nDCG@10 of OR on five collections, FiQA the exception",
+          all(abs(v) <= 0.009 for c, v in d_nd.items() if c != "FiQA") and d_nd["FiQA"] > 0.0085 and said("within 0.009 nDCG@10"), f"{ {c: round(v, 4) for c, v in d_nd.items()} }")
     check("prose: FiQA raw OR better by 0.009 nDCG@10 and 0.012 R@100 at 5.8x",
-          r3(d_nd["FiQA"]) == 0.009 and r3(raw["FiQA"]["recall_100"] - b["FiQA"]["recall_100"]) == 0.012 and round(ratio["FiQA"], 1) == 5.8 and said("better by 0.009 nDCG@10 and 0.012 Recall@100, at 5.8 times the cost"), "")
+          r3(d_nd["FiQA"]) == 0.009 and r3(raw["FiQA"]["recall_100"] - b["FiQA"]["recall_100"]) == 0.012 and round(ratios[("FiQA", "bge")], 1) == 5.8
+          and said("better by 0.009 nDCG@10 and 0.012 Recall@100, at 5.8 times the cost"), "")
+    # Protocol: identical ids, stoplist, run count.
+    ids = {c: KF[DATASET[c]]["query_id_is_doc_id"] for c in COLL}
+    check("protocol: query ids that are corpus ids: ArguAna 1,298, FiQA 55, none elsewhere",
+          ids["ArguAna"] == 1298 and ids["FiQA"] == 55 and all(v == 0 for c, v in ids.items() if c not in ("ArguAna", "FiQA"))
+          and said("1\\,298 of ArguAna's 1\\,406 queries and 55 of FiQA's 648, and no query elsewhere"), f"{ids}")
+    from dead_retriever.hybrid import FTS_STOP
+    i = TEX.index("stoplist, 118 words: \\emph{") + len("stoplist, 118 words: \\emph{")
+    listed = TEX[i:TEX.index("}", i)].split()
+    check("protocol: the 118-word stoplist printed in Appendix C equals FTS_STOP", len(FTS_STOP) == 118 and set(listed) == set(FTS_STOP) and len(listed) == 118 and said("drops the 118 stopwords"), f"{len(listed)} listed, {len(FTS_STOP)} in code")
+    nq = sum(RES[f"{COLL[c]}__{ENC['bge']}.json"]["n_queries"] for c in COLL)
+    check("protocol: 3,727 x 3 x 2 = 22,362", nq == 3727 and nq * 6 == 22362 and said("3\\,727 \\times 3 \\times 2 = 22\\,362"), f"{nq}")
+    check("intro: fused list at most 120 documents at K = 60", said("at most 120 documents each at $K = 60$"), "2K = 120")
     # ArguAna.
     fa = KF["beir/arguana"]
     and_n = [r["hybrid_and"]["n_keyword"] for r in pq[("bge", "ArguAna")].values()]
     check("prose: ArguAna AND leg one document on 1,402, two on 4, never empty",
           sum(1 for n in and_n if n == 1) == 1402 and sum(1 for n in and_n if n == 2) == 4 and len(and_n) == 1406 and said("one document for 1\\,402 of the 1\\,406 queries and two for the other four"), "")
-    check("prose: ArguAna query text returned on all 1,406; own id on 1,298 (rank 1 on 1,296); 108 under another id; 1 relevant",
+    check("prose: ArguAna query text returned on all 1,406; own id on 1,298 (top on 1,296); 108 under another id; 1 relevant",
           fa["and_returns_query_text"] == 1406 and fa["and_returns_query_itself"] == 1298 and fa["and_query_itself_at_rank_1"] == 1296
-          and 1406 - 1298 == 108 and fa["and_any_relevant_hit"] == 1, f"{fa}")
+          and 1406 - 1298 == 108 and fa["and_any_relevant_hit"] == 1 and said("at the top of the list on 1\\,296", "a relevant document for one query in 1\\,406"), f"{fa}")
+    check("prose: 'almost never relevant', not 'never useful'", not said("never useful") and said("never empty and almost never relevant"), "")
     check("prose: one document on 99.7% of queries", round(100 * 1402 / 1406, 1) == 99.7 and said("one document on 99.7\\% of queries"), "")
     shares = all(min(r["hybrid_and"]["multi_leg_docs"] for r in pq[(e, "ArguAna")].values()) >= 1 for e in ENC)
     never = all(cond(e, "ArguAna", "hybrid_and")["at_ceiling_rate"] == 0.0 for e in ENC)
-    same = all(r3(cond(e, "ArguAna", "hybrid_and")[m] - cond(e, "ArguAna", "dense")[m]) == 0.0 for e in ENC for m in ("ndcg_cut_10", "recall_100"))
-    check("prose: ArguAna dense shares the document on every query, ceiling never fires, hybrid-and = dense to 3 decimals", shares and never and same, "")
-    # What fusion did with an empty list.
+    same = all(cond(e, "ArguAna", "hybrid_and")[m] == cond(e, "ArguAna", "dense")[m] for e in ENC for m in ("ndcg_cut_10", "recall_100"))
+    check("prose: ArguAna dense shares the document on every query, ceiling never fires, hybrid-and = dense exactly", shares and never and same and said("agree to every decimal the result files carry"), "")
+    check("prose: 'can receive', not 'routinely receives'", said("can receive the text of an indexed item as a query") and not said("routinely receives"), "")
+    # What fusion did with an empty list (printed-value differences).
     for e in ENC:
         sf = pq[(e, "SciFact")]
         n = sum(1 for r in sf.values() if r["hybrid_and"]["keyword_empty"] and r["hybrid_and"]["n_dense"] == r["dense"]["n_dense"] and abs(r["hybrid_and"]["max_score"] - 1 / 60) < 1e-12)
         check(f"prose: SciFact {e}: the 294 empty-leg queries have dense's count and max exactly 1/60", n == 294, f"{n}")
-    def diffs(coll, m):
-        return [cond(e, coll, "hybrid_and")[m] - cond(e, coll, "dense")[m] for e in ENC]
-    check("prose: SciFact hybrid-and vs dense at most 0.002 nDCG@10 and 0.000 R@100",
-          max(abs(r3(x)) for x in diffs("SciFact", "ndcg_cut_10")) == 0.002 and max(abs(r3(x)) for x in diffs("SciFact", "recall_100")) == 0.0, "")
-    check("prose: SciDocs hybrid-and vs dense at most 0.002 and 0.000",
-          max(abs(r3(x)) for x in diffs("SciDocs", "ndcg_cut_10")) == 0.002 and max(abs(r3(x)) for x in diffs("SciDocs", "recall_100")) == 0.0, "")
-    nf = sorted(r3(x) for x in diffs("NFCorpus", "ndcg_cut_10"))
-    tc = sorted(r3(x) for x in diffs("TREC-COVID", "ndcg_cut_10"))
-    check("prose: NFCorpus hybrid-and above dense by 0.008 to 0.013; TREC-COVID below by 0.027 to 0.039",
-          (nf[0], nf[-1]) == (0.008, 0.013) and (tc[0], tc[-1]) == (-0.039, -0.027) and said("by 0.008 to 0.013 nDCG@10", "below by 0.027 to 0.039"), f"{nf} {tc}")
+    sf_nd = max(abs(pdiff(e, "SciFact", "hybrid_and", "dense", "ndcg_cut_10")) for e in ENC)
+    sf_rc = max(abs(pdiff(e, "SciFact", "hybrid_and", "dense", "recall_100")) for e in ENC)
+    sf_raw = max(abs(cond(e, "SciFact", "hybrid_and")["ndcg_cut_10"] - cond(e, "SciFact", "dense")["ndcg_cut_10"]) for e in ENC)
+    sf_rawr = max(abs(cond(e, "SciFact", "hybrid_and")["recall_100"] - cond(e, "SciFact", "dense")["recall_100"]) for e in ENC)
+    check("prose: SciFact hybrid-and vs dense at most 0.003 / 0.000 as printed (0.0022 / 0.0000 before rounding)",
+          sf_nd == 0.003 and sf_rc == 0.0 and round(sf_raw, 4) == 0.0022 and round(sf_rawr, 4) == 0.0 and said("at most 0.003 nDCG@10 and 0.000 Recall@100 as printed", "(0.0022 and 0.0000 before rounding)"), f"{sf_nd} {sf_rc} {sf_raw:.5f} {sf_rawr:.5f}")
+    sd = max(abs(pdiff(e, "SciDocs", "hybrid_and", "dense", m)) for e in ENC for m in ("ndcg_cut_10", "recall_100"))
+    check("prose: SciDocs hybrid-and vs dense at most 0.001 in each as printed", sd == 0.001 and said("by at most 0.001 in each"), f"{sd}")
+    nf = sorted(pdiff(e, "NFCorpus", "hybrid_and", "dense", "ndcg_cut_10") for e in ENC)
+    tc = sorted(pdiff(e, "TREC-COVID", "hybrid_and", "dense", "ndcg_cut_10") for e in ENC)
+    check("prose: NFCorpus hybrid-and above dense by 0.008 to 0.014; TREC-COVID below by 0.027 to 0.039 (printed)",
+          (nf[0], nf[-1]) == (0.008, 0.014) and (tc[0], tc[-1]) == (-0.039, -0.027) and said("by 0.008 to 0.014 nDCG@10", "below by 0.027 to 0.039"), f"{nf} {tc}")
     live = {c: sum(1 for r in pq[("bge", c)].values() if not r["hybrid_and"]["keyword_empty"]) for c in COLL}
-    check("prose: live AND legs NFCorpus 159, SciDocs 58, FiQA 118, TREC-COVID 13", (live["NFCorpus"], live["SciDocs"], live["FiQA"], live["TREC-COVID"]) == (159, 58, 118, 13), f"{live}")
+    check("prose: live AND legs NFCorpus 159, SciDocs 58, FiQA 118, TREC-COVID 13", (live["NFCorpus"], live["SciDocs"], live["FiQA"], live["TREC-COVID"]) == (159, 58, 118, 13)
+          and said("(159 live queries of 323)", "(13 live queries of 50)"), f"{live}")
     # The ceiling against the row count.
     runs = missed = 0
     excess = defaultdict(int)
     shared, long_ = [], []
+    bucket = defaultdict(lambda: [0, 0])  # (hyb, bucket) -> [fired, total], ArguAna excluded
+    top_fired = []
     for (e, c), by in pq.items():
         for hyb in ("hybrid_and", "hybrid_or"):
             for q, r in by.items():
@@ -265,6 +300,13 @@ def check_prose_beir():
                         shared.append((e, c, hyb, row["n_keyword"], row["multi_leg_docs"]))
                     if row["n_keyword"] >= 4:
                         long_.append(c)
+                n = row["n_keyword"]
+                if c != "ArguAna" and n >= 1:
+                    bk = "1-3" if n <= 3 else ("4-49" if n < 50 else "50-100")
+                    bucket[(hyb, bk)][1] += 1
+                    bucket[(hyb, bk)][0] += int(row["at_ceiling"])
+                    if bk == "50-100" and row["at_ceiling"]:
+                        top_fired.append(row["multi_leg_docs"])
     tot_and = sum(v for k, v in excess.items() if k[2] == "hybrid_and")
     tot_or = sum(v for k, v in excess.items() if k[2] == "hybrid_or")
     check("prose: 22,362 hybrid query runs, no empty leg missed", runs == 22362 and missed == 0 and said("22\\,362 hybrid query runs"), f"{runs} runs, {missed} missed")
@@ -285,44 +327,67 @@ def check_prose_beir():
           len(long_) == 39 and set(long_) <= {"FiQA", "TREC-COVID", "SciDocs"} and said("on 39 runs, all on FiQA, TREC-COVID and SciDocs"), f"{len(long_)} {sorted(set(long_))}")
     nat = json.loads((ROOT / "results" / "natural_lengths.json").read_text())
     nb = {b["n_keyword"]: (b["fired"], b["total"]) for b in nat["buckets"]}
-    check("prose: pooled without ArguAna 137/726 (18.9%), 35/588 (6.0%), 4/6,636 (0.1%)",
+    check("prose: pooled without ArguAna 137/726 (18.9%), 35/588 (6.0%), 4/6,636 (0.06%)",
           nat["pooled_without"] == "beir_arguana" and nb["1-3"] == (137, 726) and nb["4-49"] == (35, 588) and nb["50-100"] == (4, 6636)
-          and round(100 * 137 / 726, 1) == 18.9 and round(100 * 35 / 588, 1) == 6.0 and round(100 * 4 / 6636, 1) == 0.1, f"{nb}")
+          and round(100 * 137 / 726, 1) == 18.9 and round(100 * 35 / 588, 1) == 6.0 and round(100 * 4 / 6636, 2) == 0.06 and said("(0.06\\%;"), f"{nb}")
+    check("prose: the four 50+ firings are two zero-overlap and the two overlap-present FiQA runs",
+          sorted(top_fired) == [0, 0, 1, 1] and said("two zero-overlap runs and the two overlap-present FiQA runs"), f"{top_fired}")
+    check("prose: 1-3 bucket: buggy 612 runs firing 132, fixed 114 firing 5",
+          bucket[("hybrid_and", "1-3")] == [132, 612] and bucket[("hybrid_or", "1-3")] == [5, 114] and said("612 of the 726 runs in the first bucket, firing on 132 of them, against 5 of 114"), f"{dict(bucket)}")
     bc = nat["by_collection"]
-    short = {c: (bc[COLL[c]]["1-3"]["fired"], bc[COLL[c]]["1-3"]["total"]) for c in ("NFCorpus", "SciDocs", "FiQA", "TREC-COVID")}
-    check("prose: short-list rate 13/330, 18/141, 90/219, 16/18", short == {"NFCorpus": (13, 330), "SciDocs": (18, 141), "FiQA": (90, 219), "TREC-COVID": (16, 18)}
-          and said("13 of 330 on NFCorpus (3.6k documents), 18 of 141 on SciDocs (26k), 90 of 219 on FiQA (58k) and 16 of 18 on TREC-COVID (171k)"), f"{short}")
-    sizes = {c: RES[f"{COLL[c]}__{ENC['bge']}.json"]["n_docs"] for c in COLL}
-    check("prose: corpus sizes 3.6k, 26k, 58k, 171k", (round(sizes["NFCorpus"] / 1000, 1), round(sizes["SciDocs"] / 1000), round(sizes["FiQA"] / 1000), round(sizes["TREC-COVID"] / 1000)) == (3.6, 26, 58, 171), f"{sizes}")
+    short = {c: (bc[COLL[c]]["1-3"]["fired"], bc[COLL[c]]["1-3"]["total"]) for c in ("SciFact", "NFCorpus", "SciDocs", "FiQA", "TREC-COVID")}
+    check("prose: short-list rate 0/18, 13/330, 18/141, 90/219, 16/18 with sizes 5.2k, 3.6k, 26k, 58k, 171k",
+          short == {"SciFact": (0, 18), "NFCorpus": (13, 330), "SciDocs": (18, 141), "FiQA": (90, 219), "TREC-COVID": (16, 18)}
+          and (round(sizes["SciFact"] / 1000, 1), round(sizes["NFCorpus"] / 1000, 1), round(sizes["SciDocs"] / 1000), round(sizes["FiQA"] / 1000), round(sizes["TREC-COVID"] / 1000)) == (5.2, 3.6, 26, 58, 171)
+          and said("0 of 18 on SciFact (5.2k documents), 13 of 330 on NFCorpus (3.6k), 18 of 141 on SciDocs (26k), 90 of 219 on FiQA (58k) and 16 of 18 on TREC-COVID (171k"), f"{short}")
+    tq = set()
+    for e in ENC:
+        for qid, r in pq[(e, "TREC-COVID")].items():
+            for hyb in ("hybrid_and", "hybrid_or"):
+                if 1 <= r[hyb]["n_keyword"] <= 3:
+                    tq.add(qid)
+    check("prose: TREC-COVID short-list runs are six distinct queries", len(tq) == 6 and said("six distinct queries"), f"{len(tq)}")
     check("prose: sweep zero contrasted with the two natural FiQA runs at n = 100", len(shared) == 2 and said("It did occur twice in the natural FiQA runs above, both with $n = 100$"), "")
-    # Effectiveness.
+    # Effectiveness (printed-value differences).
     sh_and = max(cond(e, c, "hybrid_and")["multi_leg_docs_mean"] for e in ENC for c in COLL)
     sh_or = [cond(e, c, "hybrid_or")["multi_leg_docs_mean"] for e in ENC for c in COLL]
-    check("prose: shared documents at most 4.0 per query before, 19.0 to 43.7 after",
-          round(sh_and, 1) == 4.0 and round(min(sh_or), 1) == 19.0 and round(max(sh_or), 1) == 43.7, f"{sh_and:.2f} {min(sh_or):.2f} {max(sh_or):.2f}")
+    check("prose: shared documents at most 4.0 per query before (as printed), 19.0 to 43.7 after",
+          round(sh_and, 1) == 4.0 and round(min(sh_or), 1) == 19.0 and round(max(sh_or), 1) == 43.7, f"{sh_and:.3f} {min(sh_or):.2f} {max(sh_or):.2f}")
     def count(a, bb, m):
         return sum(1 for e in ENC for c in COLL if cond(e, c, a)[m] - cond(e, c, bb)[m] >= 0.0005)
     n1, n2, n3 = count("hybrid_or", "dense", "ndcg_cut_10"), count("hybrid_or", "dense", "recall_100"), count("hybrid_and", "hybrid_or", "ndcg_cut_10")
-    check("prose: repaired above dense nDCG 5/18, R@100 9/18; buggy above repaired nDCG 12/18",
-          (n1, n2, n3) == (5, 9, 12) and said("above \\textsc{dense} at nDCG@10 in 5 and above it at Recall@100 in 9", "at nDCG@10 in 12"), f"{n1} {n2} {n3}")
-    ties = sum(1 for e in ENC for c in COLL for a, bb, m in (("hybrid_or", "dense", "ndcg_cut_10"), ("hybrid_or", "dense", "recall_100"), ("hybrid_and", "hybrid_or", "ndcg_cut_10"))
-               if abs(cond(e, c, a)[m] - cond(e, c, bb)[m]) < 0.0005)
-    check("effectiveness counts have no near-ties (|d| < 0.0005)", ties == 0, f"{ties}")
+    check("prose: repaired above dense nDCG 5/18 (below 13), R@100 9/18; buggy above repaired nDCG 12/18 (unrounded)", (n1, n2, n3) == (5, 9, 12), f"{n1} {n2} {n3}")
+    tie = cond("bge", "NFCorpus", "hybrid_or")["recall_100"] - cond("bge", "NFCorpus", "dense")["recall_100"]
+    check("prose: the ninth R@100 gain (NFCorpus bge) is 0.0006 and prints as a tie", round(tie, 4) == 0.0006 and pdiff("bge", "NFCorpus", "hybrid_or", "dense", "recall_100") == 0.0 and said("by 0.0006, which the table rounds to a tie"), f"{tie:.6f}")
     bm_arg = cond("bge", "ArguAna", "bm25_or")["ndcg_cut_10"]
     beaten = [e for e in ENC if cond(e, "ArguAna", "dense")["ndcg_cut_10"] < bm_arg]
     only = all(cond(e, c, "dense")["ndcg_cut_10"] >= cond("bge", c, "bm25_or")["ndcg_cut_10"] for e in ENC for c in COLL if c != "ArguAna")
-    check("prose: ArguAna the one collection where BM25 (0.360) beats two encoders", r3(bm_arg) == 0.360 and sorted(beaten) == ["e5", "nomic"] and only, f"{beaten}")
-    g = lambda e, c: r3(cond(e, c, "hybrid_or")["ndcg_cut_10"] - cond(e, c, "dense")["ndcg_cut_10"])
-    check("prose: gains e5 +0.059 and nomic +0.027 (ArguAna), +0.004 nomic and +0.007 e5 (SciFact), e5 +0.018 (TREC-COVID)",
-          (g("e5", "ArguAna"), g("nomic", "ArguAna"), g("nomic", "SciFact"), g("e5", "SciFact"), g("e5", "TREC-COVID")) == (0.059, 0.027, 0.004, 0.007, 0.018), "")
+    check("prose: ArguAna the one collection where BM25 (0.360) is above two encoders", r3(bm_arg) == 0.360 and sorted(beaten) == ["e5", "nomic"] and only, f"{beaten}")
+    g = lambda e, c: pdiff(e, c, "hybrid_or", "dense", "ndcg_cut_10")
+    check("prose: gains (printed) e5 0.060 and nomic 0.027 on ArguAna, 0.005 and 0.007 on SciFact, 0.018 on TREC-COVID",
+          (g("e5", "ArguAna"), g("nomic", "ArguAna"), g("nomic", "SciFact"), g("e5", "SciFact"), g("e5", "TREC-COVID")) == (0.060, 0.027, 0.005, 0.007, 0.018)
+          and said("gains 0.060 for e5 and 0.027 for nomic", "0.005 and 0.007 on SciFact for nomic and e5; 0.018 on TREC-COVID for e5"), "")
     fq_bm = cond("bge", "FiQA", "bm25_or")["ndcg_cut_10"]
     fq_d = sorted(cond(e, "FiQA", "dense")["ndcg_cut_10"] for e in ENC)
     fq_l = sorted(-g(e, "FiQA") for e in ENC)
-    check("prose: FiQA BM25 0.224 against 0.376 to 0.406; repaired hybrid 0.037 to 0.059 below dense",
-          r3(fq_bm) == 0.224 and (r3(fq_d[0]), r3(fq_d[-1])) == (0.376, 0.406) and (fq_l[0], fq_l[-1]) == (0.037, 0.059), f"{fq_d} {fq_l}")
+    check("prose: FiQA BM25 0.224 against 0.376 to 0.406; repaired hybrid 0.037 to 0.058 below dense (printed)",
+          r3(fq_bm) == 0.224 and (r3(fq_d[0]), r3(fq_d[-1])) == (0.376, 0.406) and (fq_l[0], fq_l[-1]) == (0.037, 0.058) and said("0.037 to 0.058 below"), f"{fq_d} {fq_l}")
+    wins = [(c, e) for c in COLL for e in ENC if cond(e, c, "hybrid_and")["ndcg_cut_10"] - cond(e, c, "hybrid_or")["ndcg_cut_10"] >= 0.0005]
+    not_above = [(c, e) for c, e in wins if cond(e, c, "hybrid_and")["ndcg_cut_10"] - cond(e, c, "dense")["ndcg_cut_10"] < 0.0005]
+    above = [(c, e) for c, e in wins if (c, e) not in not_above]
+    emp = sorted(round(100 * cond(e, c, "hybrid_and")["keyword_empty_rate"]) for c, e in not_above if c != "ArguAna")
+    check("prose: of the 12 buggy>repaired pairs, 8 are not above dense (7 empty on 74-94% + ArguAna bge); above on NFCorpus x3 and SciFact bge",
+          len(wins) == 12 and len(not_above) == 8 and ("ArguAna", "bge") in not_above and (emp[0], emp[-1]) == (74, 94)
+          and sorted(above) == [("NFCorpus", "bge"), ("NFCorpus", "e5"), ("NFCorpus", "nomic"), ("SciFact", "bge")]
+          and said("In 8 of the 12 the buggy hybrid is not above", "on seven of them its leg was empty on 74 to 94\\%"), f"not above: {not_above}")
+    sb = pdiff("bge", "SciFact", "hybrid_and", "dense", "ndcg_cut_10")
+    check("prose: SciFact bge buggy hybrid above dense by 0.001 (printed)", sb == 0.001 and said("by 0.001 on SciFact and by 0.008 to 0.014 on NFCorpus"), f"{sb}")
     # Abstract.
-    check("abstract: 50.8 to 98.0% on five collections, 174 and two, 5 of 18",
-          said("50.8 to 98.0\\% of queries on five collections", "in 174 runs", "in two, the case depth", "in 5 of 18 collection--encoder pairs"), "")
+    check("abstract: 50.8 to 98.0% on five collections, 174 runs, two runs, raises overlap, almost never relevant",
+          said("50.8 to 98.0\\% of queries on five collections", "in 174 runs", "in two runs over lists that shared one document", "raises overlap in every collection--encoder pair", "almost never relevant")
+          and not said("restores overlap") and not said("two working retrievers"), "")
+    check("abstract: the history claim is stated as an inference", said("is an inference from the unchanged code and the replay", "keeps no query log") and not said("nobody noticed"), "")
+    check("no \\todo placeholders remain", "\\todo{" not in TEX, f"{TEX.count(chr(92) + 'todo{')} remaining")
 
 
 def check_sweep():

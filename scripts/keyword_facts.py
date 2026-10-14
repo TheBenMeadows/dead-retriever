@@ -11,8 +11,9 @@ For each collection and each query with qrels: the token count, the count
 after the fixed builder's stopword and short-token drop, the AND leg's row
 count (depth 100), whether the AND leg returned the query's own id, whether it
 returned a document whose text equals the query's after whitespace and case
-normalisation (ArguAna's queries are themselves corpus documents), and whether
-any AND hit is relevant.
+normalisation (ArguAna's queries are themselves corpus documents), whether
+any AND hit is relevant, and how many query ids are also corpus document ids
+(the ids the evaluator drops before scoring).
 
     scripts/keyword_facts.py
 """
@@ -48,10 +49,11 @@ def facts(name):
     for r in ds.qrels_iter():
         qrels.setdefault(r.query_id, {})[r.doc_id] = int(r.relevance)
     n_tok, n_kept, n_and = [], [], []
-    self_hit = self_top = rel_hit = same_text = 0
+    self_hit = self_top = rel_hit = same_text = id_in_corpus = 0
     for q in ds.queries_iter():
         if q.query_id not in qrels:
             continue
+        id_in_corpus += q.query_id in docs
         toks = tokens(q.text)
         n_tok.append(len(toks))
         n_kept.append(len([t for t in toks if len(t) > 2 and t not in FTS_STOP]))
@@ -69,7 +71,8 @@ def facts(name):
             "and_rows_1_3": sum(1 for x in n_and if 1 <= x <= 3),
             "and_rows_4_plus": sum(1 for x in n_and if x >= 4),
             "and_returns_query_itself": self_hit, "and_query_itself_at_rank_1": self_top,
-            "and_returns_query_text": same_text, "and_any_relevant_hit": rel_hit}
+            "and_returns_query_text": same_text, "and_any_relevant_hit": rel_hit,
+            "query_id_is_doc_id": id_in_corpus}
 
 
 def main():
