@@ -34,7 +34,7 @@ from pathlib import Path
 T0 = time.time()
 
 REPO_URL = "https://github.com/TheBenMeadows/dead-retriever.git"
-PINNED_COMMIT = "031d657fcb218a97020774823dee16914aed3361"
+PINNED_COMMIT = "4e3ea193eb9df0666da670ab8c1db1fc36e83bc1"
 DATASETS = ("beir/scifact/test", "beir/nfcorpus/test", "beir/arguana", "beir/scidocs",
             "beir/fiqa/test", "beir/trec-covid")
 MODELS = ("BAAI/bge-base-en-v1.5", "nomic-ai/nomic-embed-text-v1.5", "intfloat/e5-base-v2")
