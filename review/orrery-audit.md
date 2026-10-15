@@ -1,6 +1,6 @@
 # Orrery audit of paper/main.tex against results/ and dead_retriever/ (log-only)
 
-630 PASS, 0 FAIL
+633 PASS, 0 FAIL
 
 - PASS  sweep: four files  (4)
 - PASS  sweep: 60 cells and 17,940 live-leg runs  (60 cells, 17940 runs)
@@ -620,15 +620,18 @@
 - PASS  prose: 1-3 bucket: buggy 612 runs firing 132, fixed 114 firing 5  ({('hybrid_and', '1-3'): [132, 612], ('hybrid_or', '50-100'): [4, 6567], ('hybrid_or', '4-49'): [3, 207], ('hybrid_and', '50-100'): [0, 69], ('hybrid_and', '4-49'): [32, 381], ('hybrid_or', '1-3'): [5, 114]})
 - PASS  prose: short-list rate 0/18, 13/330, 18/141, 90/219, 16/18 with sizes 5.2k, 3.6k, 26k, 58k, 171k  ({'SciFact': (0, 18), 'NFCorpus': (13, 330), 'SciDocs': (18, 141), 'FiQA': (90, 219), 'TREC-COVID': (16, 18)})
 - PASS  prose: TREC-COVID short-list runs are six distinct queries  (6)
+- PASS  prose: larger corpora short-list disjoint 12.8, 41.1, 88.9% (124 of 378)  ([(18, 141), (90, 219), (16, 18)] (124, 378))
 - PASS  prose: sweep zero contrasted with the two natural FiQA runs at n = 100  ()
 - PASS  prose: shared documents at most 4.0 per query before (as printed), 19.0 to 43.7 after  (4.006 19.04 43.66)
 - PASS  prose: repaired above dense nDCG 5/18 (below 13), R@100 9/18; buggy above repaired nDCG 12/18 (unrounded)  (5 9 12)
 - PASS  prose: the ninth R@100 gain (NFCorpus bge) is 0.0006 and prints as a tie  (0.000588)
-- PASS  prose: ArguAna the one collection where BM25 (0.484) is above two encoders (e5 0.447, nomic 0.483 by 0.001)  (['nomic', 'e5'])
+- PASS  prose: ArguAna BM25 (0.484) above e5 (0.447) and level with nomic (0.483, within 0.001)  (['nomic', 'e5'] level=True)
 - PASS  prose: gains (printed) e5 0.085 and nomic 0.034 on ArguAna, bge loss 0.035; 0.005 and 0.007 on SciFact, 0.018 on TREC-COVID  ()
 - PASS  prose: FiQA BM25 0.224 against 0.376 to 0.406; repaired hybrid 0.037 to 0.058 below dense (printed)  ([0.37647587524591536, 0.3986663557596119, 0.406231202203102] [0.037, 0.046, 0.058])
 - PASS  prose: of the 12 buggy>repaired pairs, 8 are not above dense (7 empty on 74-94% + ArguAna bge); above on NFCorpus x3 and SciFact bge  (not above: [('ArguAna', 'bge'), ('SciDocs', 'bge'), ('SciDocs', 'nomic'), ('SciDocs', 'e5'), ('FiQA', 'bge'), ('FiQA', 'nomic'), ('FiQA', 'e5'), ('TREC-COVID', 'nomic')])
 - PASS  prose: SciFact bge buggy hybrid above dense by 0.001 (printed)  (0.001)
 - PASS  abstract: 50.8 to 98.0% on five collections, 174 runs, two runs, raises overlap, almost never relevant  ()
 - PASS  abstract: the history claim is stated as an inference  ()
+- PASS  protocol: FiQA stated as observed, not inferred  ()
+- PASS  protocol: six families named  ()
 - PASS  no \todo placeholders remain  (0 remaining)

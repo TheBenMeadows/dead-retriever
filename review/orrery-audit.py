@@ -362,6 +362,10 @@ def check_prose_beir():
                 if 1 <= r[hyb]["n_keyword"] <= 3:
                     tq.add(qid)
     check("prose: TREC-COVID short-list runs are six distinct queries", len(tq) == 6 and said("six distinct queries"), f"{len(tq)}")
+    big = [short[c] for c in ("SciDocs", "FiQA", "TREC-COVID")]
+    pooled = (sum(f for f, t in big), sum(t for f, t in big))
+    check("prose: larger corpora short-list disjoint 12.8, 41.1, 88.9% (124 of 378)",
+          [round(100 * f / t, 1) for f, t in big] == [12.8, 41.1, 88.9] and pooled == (124, 378) and said("12.8, 41.1 and 88.9\\% of runs (124 of 378 pooled)"), f"{big} {pooled}")
     check("prose: sweep zero contrasted with the two natural FiQA runs at n = 100", len(shared) == 2 and said("It did occur twice in the natural FiQA runs above, both with $n = 100$"), "")
     # Effectiveness (printed-value differences).
     sh_and = max(cond(e, c, "hybrid_and")["multi_leg_docs_mean"] for e in ENC for c in COLL)
@@ -377,8 +381,9 @@ def check_prose_beir():
     bm_arg = cond("bge", "ArguAna", "bm25_or")["ndcg_cut_10"]
     beaten = [e for e in ENC if cond(e, "ArguAna", "dense")["ndcg_cut_10"] < bm_arg]
     only = all(cond(e, c, "dense")["ndcg_cut_10"] >= cond("bge", c, "bm25_or")["ndcg_cut_10"] for e in ENC for c in COLL if c != "ArguAna")
-    check("prose: ArguAna the one collection where BM25 (0.484) is above two encoders (e5 0.447, nomic 0.483 by 0.001)", r3(bm_arg) == 0.484 and sorted(beaten) == ["e5", "nomic"] and only
-          and r3(cond("e5", "ArguAna", "dense")["ndcg_cut_10"]) == 0.447 and r3(cond("nomic", "ArguAna", "dense")["ndcg_cut_10"]) == 0.483 and said("BM25 alone (0.484) is above two of the three encoders"), f"{beaten}")
+    level = abs(bm_arg - cond("nomic", "ArguAna", "dense")["ndcg_cut_10"]) < 0.001
+    check("prose: ArguAna BM25 (0.484) above e5 (0.447) and level with nomic (0.483, within 0.001)", r3(bm_arg) == 0.484 and "e5" in beaten and level and only
+          and r3(cond("e5", "ArguAna", "dense")["ndcg_cut_10"]) == 0.447 and r3(cond("nomic", "ArguAna", "dense")["ndcg_cut_10"]) == 0.483 and said("above an encoder at nDCG@10, e5 (0.447), and level with another, nomic (0.483)"), f"{beaten} level={level}")
     g = lambda e, c: pdiff(e, c, "hybrid_or", "dense", "ndcg_cut_10")
     check("prose: gains (printed) e5 0.085 and nomic 0.034 on ArguAna, bge loss 0.035; 0.005 and 0.007 on SciFact, 0.018 on TREC-COVID",
           (g("e5", "ArguAna"), g("nomic", "ArguAna"), g("bge", "ArguAna"), g("nomic", "SciFact"), g("e5", "SciFact"), g("e5", "TREC-COVID")) == (0.085, 0.034, -0.035, 0.005, 0.007, 0.018)
@@ -395,14 +400,16 @@ def check_prose_beir():
     check("prose: of the 12 buggy>repaired pairs, 8 are not above dense (7 empty on 74-94% + ArguAna bge); above on NFCorpus x3 and SciFact bge",
           len(wins) == 12 and len(not_above) == 8 and ("ArguAna", "bge") in not_above and (emp[0], emp[-1]) == (74, 94)
           and sorted(above) == [("NFCorpus", "bge"), ("NFCorpus", "e5"), ("NFCorpus", "nomic"), ("SciFact", "bge")]
-          and said("In 8 of the 12 the buggy hybrid is not above", "on seven of them its leg was empty on 74 to 94\\%"), f"not above: {not_above}")
+          and said("In 8 of the 12 the buggy hybrid is not above", "on seven of them its leg was empty on 74 to 94\\%", "the self-match on every query and a second document on four"), f"not above: {not_above}")
     sb = pdiff("bge", "SciFact", "hybrid_and", "dense", "ndcg_cut_10")
     check("prose: SciFact bge buggy hybrid above dense by 0.001 (printed)", sb == 0.001 and said("by 0.001 on SciFact and by 0.008 to 0.014 on NFCorpus"), f"{sb}")
     # Abstract.
     check("abstract: 50.8 to 98.0% on five collections, 174 runs, two runs, raises overlap, almost never relevant",
           said("50.8 to 98.0\\% of queries on five collections", "in 174 runs", "in two runs over lists that shared one document", "raises overlap in every collection--encoder pair", "almost never relevant")
           and not said("restores overlap") and not said("two working retrievers"), "")
-    check("abstract: the history claim is stated as an inference", said("is an inference from the unchanged code and the replay", "keeps no query log") and not said("nobody noticed"), "")
+    check("abstract: the history claim is stated as an inference", said("is an inference from the unchanged code and the replay", "keeps no query log", "held on all ten replayed queries", "on every replayed query") and not said("nobody noticed") and not said("from the start") and not said("had never looked empty"), "")
+    check("protocol: FiQA stated as observed, not inferred", said("FiQA was run with and without the rule and every one of its reported figures is identical"), "")
+    check("protocol: six families named", said("six families: two metrics by three comparisons"), "")
     check("no \\todo placeholders remain", "\\todo{" not in TEX, f"{TEX.count(chr(92) + 'todo{')} remaining")
 
 
