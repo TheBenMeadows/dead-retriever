@@ -34,10 +34,13 @@ from pathlib import Path
 T0 = time.time()
 
 REPO_URL = "https://github.com/TheBenMeadows/dead-retriever.git"
-PINNED_COMMIT = "d38d5c193a8ae1ef04dcc5d00b14a98525c8b232"
+PINNED_COMMIT = "4e3ea193eb9df0666da670ab8c1db1fc36e83bc1"
 DATASETS = ("beir/scifact/test", "beir/nfcorpus/test", "beir/arguana", "beir/scidocs",
             "beir/fiqa/test", "beir/trec-covid")
 MODELS = ("BAAI/bge-base-en-v1.5", "nomic-ai/nomic-embed-text-v1.5", "intfloat/e5-base-v2")
+# nomic accepts 8,192 tokens; at the runner default of 64 its longest batches
+# exhaust a T4 on SciDocs, FiQA and TREC-COVID. The other encoders stop at 512.
+MODEL_BATCH = {"nomic-ai/nomic-embed-text-v1.5": 8}
 CONDITIONS = ("bm25_and", "bm25_or_raw", "bm25_or", "dense", "hybrid_and", "hybrid_or")
 ON_KAGGLE = Path("/kaggle/working").is_dir()
 TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
@@ -213,7 +216,7 @@ def main():
 
     manifest = {"repo": REPO_URL, "commit": None, "smoke": a.smoke, "datasets": list(datasets),
                 "models": list(models), "limit_queries": limit, "deadline_minutes": a.deadline_minutes,
-                "batch": a.batch, "started_unix": T0, "on_kaggle": ON_KAGGLE, "environment": None,
+                "batch": a.batch, "model_batch": MODEL_BATCH, "started_unix": T0, "on_kaggle": ON_KAGGLE, "environment": None,
                 "downloads": {}, "runs": []}
     manifest_path = out / "manifest.json"
 
@@ -254,7 +257,7 @@ def main():
                 save()
                 continue
             cmd = [sys.executable, repo_dir / "scripts" / "beir_run.py", "--dataset", ds, "--model", model,
-                   "--out", out / "results", "--cache", work / "cache", "--batch", a.batch,
+                   "--out", out / "results", "--cache", work / "cache", "--batch", MODEL_BATCH.get(model, a.batch),
                    "--limit-queries", limit, "--deadline-minutes", a.deadline_minutes, "--clock-start", T0]
             t1 = time.time()
             log_path = out / "logs" / f"{rec['tag']}.log"

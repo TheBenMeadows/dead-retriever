@@ -24,6 +24,7 @@ extension, same import name, published as wheels) is installed in its place.
 |---|---|
 | `results/<tag>.json` | per-condition nDCG@10, Recall@100, mean query time and fusion diagnostics; same keys as `results/*.json` in the repository |
 | `results/<tag>.perquery.jsonl` | one row per (query, condition) with the diagnostics |
+| `results/<tag>.pereval.jsonl` | one row per (query, condition) with nDCG@10 and Recall@100, for paired tests |
 | `ndcg10.md` | nDCG@10 table, conditions by run |
 | `manifest.json` | commit, package versions, GPU name, dataset sizes, per-run status and timing |
 | `logs/<tag>.log` | full stdout/stderr of each `beir_run.py` invocation |
@@ -73,7 +74,7 @@ assigns a GPU that the image's torch was not built for, `cuda_ok` is false and
 `cuda_error` holds the exception. Check this before trusting the timing columns.
 The numbers are computed the same way on CPU, only more slowly.
 
-The pinned commit (`d38d5c1`) is on branch `kaggle/irrj-expansion`. GitHub serves a
+The pinned commit (`4e3ea19`) is on branch `kaggle/irrj-expansion`. GitHub serves a
 fetch by SHA only while the commit is reachable from some ref. If the branch
 is squash-merged and deleted, set `PINNED_COMMIT` to the corresponding commit on
 `main` before pushing the kernel again.
