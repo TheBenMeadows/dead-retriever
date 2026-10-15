@@ -1,6 +1,6 @@
 # Orrery audit of paper/main.tex against results/ and dead_retriever/ (log-only)
 
-627 PASS, 0 FAIL
+630 PASS, 0 FAIL
 
 - PASS  sweep: four files  (4)
 - PASS  sweep: 60 cells and 17,940 live-leg runs  (60 cells, 17940 runs)
@@ -43,6 +43,9 @@
 - PASS  prose: a deeper dense list never raises a figure  ()
 - PASS  prose: hidden overlap possible in 8 cells (K=100, n in {50,100}), 2,392 runs, none observed  (8 cells, 2392 runs)
 - PASS  caption: nomic within 4.4 points at n=1 and 1.0 point from n=3  (4.3 1.0)
+- PASS  citations: every cited key has a bibliography entry  (missing []; 28 keys cited)
+- PASS  citations: every cited key is in the built main.bbl  ([])
+- PASS  protocol: the rounding rule is stated  ()
 - PASS  significance: file present, 10^5 trials, 108 rows, Holm  ()
 - PASS  prose: h-or vs dense nDCG: 5 above (2 sig), 13 below (5 sig)  ((5, 2, 13, 5))
 - PASS  prose: h-or vs dense R@100: 9 above (1 sig), 9 below (3 sig)  ((9, 1, 9, 3))

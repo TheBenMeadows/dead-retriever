@@ -17,6 +17,7 @@ Checks, each PASS or FAIL with the evidence:
 Writes review/orrery-audit.md and exits 1 on any FAIL.
 """
 import json
+import re
 import sys
 from collections import defaultdict
 from pathlib import Path
@@ -479,8 +480,21 @@ def check_significance():
     check("prose: ArguAna e5 R@100 gain is the one significant R@100 gain", sig("ArguAna", "e5", "hybrid_or", "dense", "recall_100"), "")
     check("abstract/conclusion carry 5 (2 sig) / 13 (5 sig)", said("in 5 of 18 pairs (2 of them significant", "below it in 13 (5 significant)", "in 5 of 18, two of them significantly, and below it in 13, five significantly"), "")
 
+
+def check_citations():
+    keys = set(re.findall(r"\\cite[tp]?(?:alp)?\{([^}]*)\}", TEX))
+    keys = {k.strip() for group in keys for k in group.split(",")}
+    bib = set(re.findall(r"^@\w+\{([^,]+),", (ROOT / "paper" / "refs.bib").read_text(), re.M))
+    missing = sorted(keys - bib)
+    check("citations: every cited key has a bibliography entry", not missing, f"missing {missing}; {len(keys)} keys cited")
+    bbl = (ROOT / "paper" / "main.bbl").read_text()
+    unresolved = sorted(k for k in keys if k not in bbl)
+    check("citations: every cited key is in the built main.bbl", not unresolved, f"{unresolved}")
+    check("protocol: the rounding rule is stated", said("differences of the printed three-decimal values"), "")
+
 def main():
     check_sweep()
+    check_citations()
     check_significance()
     check_legs_table()
     check_effect_table("\\label{tab:ndcg}", "ndcg_cut_10")
