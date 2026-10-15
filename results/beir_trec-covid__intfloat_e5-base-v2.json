@@ -3,6 +3,7 @@
  "model": "intfloat/e5-base-v2",
  "depth": 100,
  "rrf_k": 60,
+ "ignore_identical_ids": true,
  "n_docs": 171332,
  "n_queries": 50,
  "conditions": {
@@ -10,24 +11,24 @@
    "ndcg_cut_10": 0.07471900786398018,
    "recall_100": 0.0034231960123585338,
    "empty_rate": 0.74,
-   "mean_query_ms": 13.03973546004272
+   "mean_query_ms": 13.445708319995902
   },
   "bm25_or_raw": {
    "ndcg_cut_10": 0.5324579822779097,
    "recall_100": 0.09092455548779359,
    "empty_rate": 0.0,
-   "mean_query_ms": 306.5490443001909
+   "mean_query_ms": 305.9090719998494
   },
   "bm25_or": {
    "ndcg_cut_10": 0.5381490128385611,
    "recall_100": 0.10073632354564847,
    "empty_rate": 0.0,
-   "mean_query_ms": 91.93774745988776
+   "mean_query_ms": 93.74320860006264
   },
   "dense": {
    "ndcg_cut_10": 0.6964665036183234,
    "recall_100": 0.12825429859351073,
-   "mean_query_ms": 21.195974100010062
+   "mean_query_ms": 19.883966140114353
   },
   "hybrid_and": {
    "ndcg_cut_10": 0.6690190503349285,
@@ -35,7 +36,7 @@
    "keyword_empty_rate": 0.74,
    "at_ceiling_rate": 0.9,
    "multi_leg_docs_mean": 0.78,
-   "mean_query_ms": 46.42892326002766
+   "mean_query_ms": 46.852595459713484
   },
   "hybrid_or": {
    "ndcg_cut_10": 0.7141259573322069,
@@ -43,7 +44,7 @@
    "keyword_empty_rate": 0.0,
    "at_ceiling_rate": 0.0,
    "multi_leg_docs_mean": 19.64,
-   "mean_query_ms": 175.97261862003506
+   "mean_query_ms": 180.25273754006776
   }
  }
 }

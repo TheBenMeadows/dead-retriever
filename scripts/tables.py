@@ -56,13 +56,30 @@ def legs_table():
         print(" & ".join(cells) + r" \\")
 
 
-def effect_table(metric):
-    """Table 3/4: dense, hybrid-and, hybrid-or per collection and encoder."""
+def significance():
+    """Holm-adjusted p-values keyed by (tag, metric, a, b), from
+    results/significance.json when scripts/significance.py has been run."""
+    f = R / "significance.json"
+    if not f.exists():
+        return {}
+    return {(r["tag"], r["metric"], r["a"], r["b"]): r["p_holm"] for r in json.loads(f.read_text())["rows"]}
+
+
+def effect_table(metric, sig=None, alpha=0.05):
+    """Table 3/4: dense, hybrid-and, hybrid-or per collection and encoder. A
+    hybrid cell whose paired difference from dense is significant after Holm's
+    correction is marked with a star."""
+    sig = significance() if sig is None else sig
     for coll in COLL:
         cells = [coll]
         for enc in ENC:
             c = summary(coll, enc)["conditions"]
-            cells += [f"{c[k][metric]:.3f}" for k in ("dense", "hybrid_and", "hybrid_or")]
+            tag = f"{COLL[coll]}__{ENC[enc]}"
+            cells.append(f"{c['dense'][metric]:.3f}")
+            for k in ("hybrid_and", "hybrid_or"):
+                p = sig.get((tag, metric, k, "dense"))
+                mark = r"$^{*}$" if p is not None and p < alpha else ""
+                cells.append(f"{c[k][metric]:.3f}{mark}")
         print(" & ".join(cells) + r" \\")
 
 
@@ -113,20 +130,29 @@ def perquery_facts():
     print("totals:", dict(tot))
 
 
-def pair_counts():
-    """How often each comparison goes which way over the 18 collection-encoder pairs."""
-    cmp = defaultdict(lambda: [0, 0, 0])  # better, tie(|d|<0.0005), worse
+def pair_counts(alpha=0.05):
+    """How often each comparison goes which way over the 18 collection-encoder
+    pairs, and how many of each direction are significant after Holm."""
+    sig = significance()
+    cmp = defaultdict(lambda: [0, 0, 0, 0, 0])  # better, tie(|d|<0.0005), worse, sig better, sig worse
     for coll in COLL:
         for enc in ENC:
             c = summary(coll, enc)["conditions"]
+            tag = f"{COLL[coll]}__{ENC[enc]}"
             for name, a, b, m in (("hor>dense ndcg", "hybrid_or", "dense", "ndcg_cut_10"),
                                   ("hor>dense r100", "hybrid_or", "dense", "recall_100"),
+                                  ("hand>dense ndcg", "hybrid_and", "dense", "ndcg_cut_10"),
                                   ("hand>hor ndcg", "hybrid_and", "hybrid_or", "ndcg_cut_10"),
                                   ("hor>hand r100", "hybrid_or", "hybrid_and", "recall_100")):
                 d = c[a][m] - c[b][m]
-                cmp[name][0 if d >= 0.0005 else (2 if d <= -0.0005 else 1)] += 1
-    for k, (b, t, w) in cmp.items():
-        print(f"{k}: yes {b}, tie {t}, no {w}")
+                i = 0 if d >= 0.0005 else (2 if d <= -0.0005 else 1)
+                cmp[name][i] += 1
+                key = (tag, m, a, b) if (tag, m, a, b) in sig else (tag, m, b, a)
+                p = sig.get(key)
+                if p is not None and p < alpha:
+                    cmp[name][3 if d > 0 else 4] += 1
+    for k, (b, t, w, sb, sw) in cmp.items():
+        print(f"{k}: yes {b} (sig {sb}), tie {t}, no {w} (sig {sw})")
 
 
 if __name__ == "__main__":

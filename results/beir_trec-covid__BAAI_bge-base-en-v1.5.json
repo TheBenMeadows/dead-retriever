@@ -3,6 +3,7 @@
  "model": "BAAI/bge-base-en-v1.5",
  "depth": 100,
  "rrf_k": 60,
+ "ignore_identical_ids": true,
  "n_docs": 171332,
  "n_queries": 50,
  "conditions": {
@@ -10,24 +11,24 @@
    "ndcg_cut_10": 0.07471900786398018,
    "recall_100": 0.0034231960123585338,
    "empty_rate": 0.74,
-   "mean_query_ms": 13.073440160151222
+   "mean_query_ms": 15.639846579942969
   },
   "bm25_or_raw": {
    "ndcg_cut_10": 0.5324579822779097,
    "recall_100": 0.09092455548779359,
    "empty_rate": 0.0,
-   "mean_query_ms": 299.58420768005453
+   "mean_query_ms": 352.5785985801849
   },
   "bm25_or": {
    "ndcg_cut_10": 0.5381490128385611,
    "recall_100": 0.10073632354564847,
    "empty_rate": 0.0,
-   "mean_query_ms": 92.33034881988715
+   "mean_query_ms": 110.23678433997702
   },
   "dense": {
    "ndcg_cut_10": 0.7794198743263,
    "recall_100": 0.1406060337521087,
-   "mean_query_ms": 19.884081819873245
+   "mean_query_ms": 21.298244100034935
   },
   "hybrid_and": {
    "ndcg_cut_10": 0.7442365896481532,
@@ -35,7 +36,7 @@
    "keyword_empty_rate": 0.74,
    "at_ceiling_rate": 0.9,
    "multi_leg_docs_mean": 0.86,
-   "mean_query_ms": 46.81774325981678
+   "mean_query_ms": 53.75930489975872
   },
   "hybrid_or": {
    "ndcg_cut_10": 0.7630034988091393,
@@ -43,7 +44,7 @@
    "keyword_empty_rate": 0.0,
    "at_ceiling_rate": 0.0,
    "multi_leg_docs_mean": 21.62,
-   "mean_query_ms": 172.96919829994295
+   "mean_query_ms": 199.54773687986744
   }
  }
 }

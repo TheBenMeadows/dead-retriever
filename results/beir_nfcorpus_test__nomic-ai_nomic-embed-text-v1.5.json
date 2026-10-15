@@ -3,6 +3,7 @@
  "model": "nomic-ai/nomic-embed-text-v1.5",
  "depth": 100,
  "rrf_k": 60,
+ "ignore_identical_ids": true,
  "n_docs": 3633,
  "n_queries": 323,
  "conditions": {
@@ -10,40 +11,40 @@
    "ndcg_cut_10": 0.19328748232833015,
    "recall_100": 0.09468591006219289,
    "empty_rate": 0.5077399380804953,
-   "mean_query_ms": 0.15119433124996967
+   "mean_query_ms": 0.2243764458255196
   },
   "bm25_or_raw": {
    "ndcg_cut_10": 0.3037511132701872,
    "recall_100": 0.23181089503141783,
    "empty_rate": 0.07739938080495357,
-   "mean_query_ms": 2.0541741516027168
+   "mean_query_ms": 2.698692037150183
   },
   "bm25_or": {
    "ndcg_cut_10": 0.30593933783412974,
    "recall_100": 0.23332407907648695,
    "empty_rate": 0.07739938080495357,
-   "mean_query_ms": 0.7938742043055635
+   "mean_query_ms": 1.103532777093678
   },
   "dense": {
-   "ndcg_cut_10": 0.3472864545686363,
+   "ndcg_cut_10": 0.3472922048732708,
    "recall_100": 0.2976659245321355,
-   "mean_query_ms": 0.25227166252389505
+   "mean_query_ms": 0.42659790092372024
   },
   "hybrid_and": {
-   "ndcg_cut_10": 0.3605609243746079,
+   "ndcg_cut_10": 0.36056667467924236,
    "recall_100": 0.3030444741783152,
    "keyword_empty_rate": 0.5077399380804953,
    "at_ceiling_rate": 0.5170278637770898,
    "multi_leg_docs_mean": 3.7058823529411766,
-   "mean_query_ms": 1.8153405510678984
+   "mean_query_ms": 1.047801065021723
   },
   "hybrid_or": {
-   "ndcg_cut_10": 0.34446534110281624,
+   "ndcg_cut_10": 0.344470636773973,
    "recall_100": 0.3087846774584911,
    "keyword_empty_rate": 0.07739938080495357,
    "at_ceiling_rate": 0.08359133126934984,
    "multi_leg_docs_mean": 20.993808049535605,
-   "mean_query_ms": 2.242180479689261
+   "mean_query_ms": 2.699557334360683
   }
  }
 }

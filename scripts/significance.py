@@ -1,4 +1,8 @@
-#!/opt/homebrew/bin/python3
+#!/opt/homebrew/bin/uv run --script
+# /// script
+# requires-python = ">=3.11"
+# dependencies = ["numpy"]
+# ///
 """Paired randomization tests on the effectiveness comparisons, from
 results/*.pereval.jsonl (one row per query and condition, written by
 beir_run.py). Writes results/significance.json.
@@ -14,32 +18,36 @@ and comparison).
 """
 import argparse
 import json
-import random
 from collections import defaultdict
 from pathlib import Path
+
+import numpy as np
 
 R = Path(__file__).resolve().parents[1] / "results"
 METRICS = ("ndcg_cut_10", "recall_100")
 COMPARISONS = (("hybrid_or", "dense"), ("hybrid_and", "dense"), ("hybrid_and", "hybrid_or"))
 SEED = 20261014
+CHUNK = 20000
 
 
 def randomization_p(diffs, trials, rng):
     """Two-sided p-value of the mean paired difference under random sign flips.
     The observed assignment counts as one trial, so p is never zero."""
-    n = len(diffs)
+    d = np.asarray(diffs, dtype=np.float64)
+    n = d.size
     if n == 0:
         return 1.0
-    obs = abs(sum(diffs)) / n
+    obs = abs(d.sum()) / n
     if obs == 0.0:
         return 1.0
     hits = 1
-    for _ in range(trials):
-        s = 0.0
-        for d in diffs:
-            s += d if rng.random() < 0.5 else -d
-        if abs(s) / n >= obs - 1e-15:
-            hits += 1
+    done = 0
+    while done < trials:
+        m = min(CHUNK, trials - done)
+        signs = rng.integers(0, 2, size=(m, n)) * 2 - 1
+        stat = np.abs(signs @ d) / n
+        hits += int(np.count_nonzero(stat >= obs - 1e-15))
+        done += m
     return hits / (trials + 1)
 
 
@@ -67,7 +75,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--trials", type=int, default=100000)
     a = ap.parse_args()
-    rng = random.Random(SEED)
+    rng = np.random.default_rng(SEED)
     rows = []
     for path in sorted(R.glob("*.pereval.jsonl")):
         tag = path.name[: -len(".pereval.jsonl")]
@@ -77,7 +85,7 @@ def main():
                 qids = sorted(set(by[x]) & set(by[y]))
                 diffs = [by[x][q][m] - by[y][q][m] for q in qids]
                 rows.append({"tag": tag, "metric": m, "a": x, "b": y, "n": len(qids),
-                             "mean_diff": sum(diffs) / len(diffs) if diffs else 0.0,
+                             "mean_diff": float(np.mean(diffs)) if diffs else 0.0,
                              "p": randomization_p(diffs, a.trials, rng)})
     fam = defaultdict(list)
     for i, r in enumerate(rows):
