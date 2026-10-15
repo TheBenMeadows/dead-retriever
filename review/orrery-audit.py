@@ -499,10 +499,38 @@ def check_citations():
     check("citations: every cited key is in the built main.bbl", not unresolved, f"{unresolved}")
     check("protocol: the rounding rule is stated", said("differences of the printed three-decimal values"), "")
 
+
+def check_round5():
+    sd_raw = max(abs(cond(e, "SciDocs", "hybrid_and")[m] - cond(e, "SciDocs", "dense")[m]) for e in ENC for m in ("ndcg_cut_10", "recall_100"))
+    check("prose: SciDocs 0.0017 before rounding", round(sd_raw, 4) == 0.0017 and said("by at most 0.001 in each (0.0017 before rounding)"), f"{sd_raw:.5f}")
+    tb = SIG[(f"{COLL['TREC-COVID']}__{ENC['bge']}", "ndcg_cut_10", "hybrid_and", "dense")]
+    check("prose: TREC-COVID bge buggy-hybrid loss significant at p = 0.043", round(tb, 3) == 0.043 and said("significant for bge after correction ($p = 0.043$)"), f"{tb:.4f}")
+    losses = {(c, e): -pdiff(e, c, "hybrid_or", "dense", "ndcg_cut_10") for c in COLL for e in ENC}
+    biggest = max(losses, key=losses.get)
+    tn = SIG[(f"{COLL['TREC-COVID']}__{ENC['nomic']}", "ndcg_cut_10", "hybrid_or", "dense")]
+    check("prose: largest single loss is FiQA bge (0.058); TREC-COVID nomic 0.054 not significant",
+          biggest == ("FiQA", "bge") and losses[("TREC-COVID", "nomic")] == 0.054 and tn >= 0.05 and said("TREC-COVID with nomic loses 0.054, not significant on 50 queries"), f"{biggest} {losses[('TREC-COVID', 'nomic')]} p={tn:.3f}")
+    nf = KF["beir/nfcorpus/test"]
+    check("prose: NFCorpus live AND lists of 4+ on 86 of 159", nf["and_rows_4_plus"] == 86 and 323 - nf["and_empty"] == 159 and said("of four or more documents on 86 of those 159"), "")
+    p0 = (1 - 13 / 330) ** 18
+    check("prose: 0 of 18 at NFCorpus's rate happens about half the time", 0.4 < p0 < 0.6 and said("0 of 18 would occur about half the time"), f"{p0:.3f}")
+    def holm_all(ps):
+        order = sorted(range(len(ps)), key=lambda i: ps[i]); adj = [0.0] * len(ps); run = 0.0; m = len(ps)
+        for rank, i in enumerate(order):
+            run = max(run, min(1.0, (m - rank) * ps[i])); adj[i] = run
+        return adj
+    rows = SIGJ["rows"]; g = holm_all([r["p"] for r in rows])
+    fam = sum(1 for r in rows if r["p_holm"] < 0.05); glob = sum(1 for r, q in zip(rows, g) if q < 0.05)
+    kept7 = all(q < 0.05 for r, q in zip(rows, g) if r["p_holm"] < 0.05 and r["metric"] == "ndcg_cut_10" and r["a"] == "hybrid_or" and r["b"] == "dense")
+    n7 = sum(1 for r in rows if r["p_holm"] < 0.05 and r["metric"] == "ndcg_cut_10" and r["a"] == "hybrid_or" and r["b"] == "dense")
+    check("limitations: Holm over all 108: 23 of 31 remain, all seven h-or vs dense nDCG@10 among them", fam == 31 and glob == 23 and n7 == 7 and kept7 and said("23 of the 31 differences significant within their families remain so"), f"{fam} {glob} {n7} {kept7}")
+    check("abstract: K = 100 > k = 60 stated; 'as the derivation requires'", said("at $K = 100 > k = 60$, 22\\,362", "as the derivation requires with two retrievers", "as it must with two retrievers"), "")
+
 def main():
     check_sweep()
     check_citations()
     check_significance()
+    check_round5()
     check_legs_table()
     check_effect_table("\\label{tab:ndcg}", "ndcg_cut_10")
     check_effect_table("\\label{tab:recall}", "recall_100")

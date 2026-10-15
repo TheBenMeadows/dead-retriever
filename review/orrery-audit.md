@@ -1,6 +1,6 @@
 # Orrery audit of paper/main.tex against results/ and dead_retriever/ (log-only)
 
-633 PASS, 0 FAIL
+640 PASS, 0 FAIL
 
 - PASS  sweep: four files  (4)
 - PASS  sweep: 60 cells and 17,940 live-leg runs  (60 cells, 17940 runs)
@@ -56,6 +56,13 @@
 - PASS  prose: NFCorpus buggy hybrid above dense significant for nomic and e5 only  ()
 - PASS  prose: ArguAna e5 R@100 gain is the one significant R@100 gain  ()
 - PASS  abstract/conclusion carry 5 (2 sig) / 13 (5 sig)  ()
+- PASS  prose: SciDocs 0.0017 before rounding  (0.00166)
+- PASS  prose: TREC-COVID bge buggy-hybrid loss significant at p = 0.043  (0.0429)
+- PASS  prose: largest single loss is FiQA bge (0.058); TREC-COVID nomic 0.054 not significant  (('FiQA', 'bge') 0.054 p=0.206)
+- PASS  prose: NFCorpus live AND lists of 4+ on 86 of 159  ()
+- PASS  prose: 0 of 18 at NFCorpus's rate happens about half the time  (0.485)
+- PASS  limitations: Holm over all 108: 23 of 31 remain, all seven h-or vs dense nDCG@10 among them  (31 23 7 True)
+- PASS  abstract: K = 100 > k = 60 stated; 'as the derivation requires'  ()
 - PASS  legs SciFact docs  (json 5183 vs tex 5\,183)
 - PASS  legs SciFact queries  (json 300 vs tex 300)
 - PASS  legs SciFact tokens  (facts 12.63 vs tex 12.6)
