@@ -1,0 +1,50 @@
+{
+ "dataset": "beir/trec-covid",
+ "model": "nomic-ai/nomic-embed-text-v1.5",
+ "depth": 100,
+ "rrf_k": 60,
+ "ignore_identical_ids": true,
+ "n_docs": 171332,
+ "n_queries": 50,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.07471900786398018,
+   "recall_100": 0.0034231960123585338,
+   "empty_rate": 0.74,
+   "mean_query_ms": 13.574454100089497
+  },
+  "bm25_or_raw": {
+   "ndcg_cut_10": 0.5324579822779097,
+   "recall_100": 0.09092455548779359,
+   "empty_rate": 0.0,
+   "mean_query_ms": 311.5806790001807
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.5381490128385611,
+   "recall_100": 0.10073632354564847,
+   "empty_rate": 0.0,
+   "mean_query_ms": 96.6492606200336
+  },
+  "dense": {
+   "ndcg_cut_10": 0.8233852502363679,
+   "recall_100": 0.14969146695405253,
+   "mean_query_ms": 19.807920739840483
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.7839120408952137,
+   "recall_100": 0.1481276343305029,
+   "keyword_empty_rate": 0.74,
+   "at_ceiling_rate": 0.88,
+   "multi_leg_docs_mean": 0.7,
+   "mean_query_ms": 47.575508559748414
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.7689024541758697,
+   "recall_100": 0.1369381135986194,
+   "keyword_empty_rate": 0.0,
+   "at_ceiling_rate": 0.0,
+   "multi_leg_docs_mean": 21.9,
+   "mean_query_ms": 181.2533663195063
+  }
+ }
+}

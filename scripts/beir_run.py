@@ -21,6 +21,14 @@ Metrics: nDCG@10 and Recall@100 (pytrec_eval), mean query time, plus fusion
 diagnostics for the hybrid conditions (keyword leg empty, max fused score at the
 1/k ceiling, documents credited by both legs), written per query to
 <out>/<tag>.perquery.jsonl and summarised in <out>/<tag>.json.
+
+Wall-clock deadline: --deadline-minutes (default 690, under Kaggle's 12 h kernel
+limit) counted from --clock-start (a Unix time; default this process's start).
+The check runs before encoding and inside the per-query loop; when it fires the
+run evaluates the queries finished so far, writes <tag>.json with "partial":
+true, and exits 0. The summary is also rewritten (marked partial) after every
+condition, so a hard kill loses at most the condition in progress. Encoding itself is not
+interruptible: allow for one encode pass when choosing the deadline.
 """
 import argparse
 import json
@@ -35,11 +43,13 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from dead_retriever import (RRF_K, DenseIndex, HybridRetriever, KeywordIndex,  # noqa: E402
                             ceiling_report, fts_query)
 
-# Each encoder's documented retrieval prefixes: nomic prefixes both sides; the
-# bge v1.5 model card prescribes an instruction on short queries only.
-DOC_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_document: ", "nomic-ai/nomic-embed-text-v1": "search_document: "}
+# Each encoder's documented retrieval prefixes: nomic and e5 prefix both sides;
+# the bge v1.5 model card prescribes an instruction on short queries only.
+DOC_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_document: ", "nomic-ai/nomic-embed-text-v1": "search_document: ",
+              "intfloat/e5-base-v2": "passage: "}
 QRY_PREFIX = {"nomic-ai/nomic-embed-text-v1.5": "search_query: ", "nomic-ai/nomic-embed-text-v1": "search_query: ",
-              "BAAI/bge-base-en-v1.5": "Represent this sentence for searching relevant passages: "}
+              "BAAI/bge-base-en-v1.5": "Represent this sentence for searching relevant passages: ",
+              "intfloat/e5-base-v2": "query: "}
 CONDITIONS = ("bm25_and", "bm25_or_raw", "bm25_or", "dense", "hybrid_and", "hybrid_or")
 
 
@@ -132,10 +142,21 @@ def run_query(cond, q, qv, kw, dense, depth):
                     "n_keyword": len(ranks.get("keyword", {})), "n_dense": len(ranks.get("dense", {}))}
 
 
-def evaluate(run, qrels):
+def evaluate(run, qrels, cond=None, sink=None):
+    """Mean nDCG@10 and Recall@100; with `sink`, one JSON line per query
+    (qid, condition, nDCG@10, Recall@100) for paired tests. A document whose id equals the query's id
+    is removed before scoring, as BEIR's evaluator does by default
+    (ignore_identical_ids): ArguAna's queries are corpus documents. Fusion and
+    the ceiling diagnostics see the unfiltered lists."""
     import pytrec_eval
+    run = {q: {d: s for d, s in docs.items() if d != q} for q, docs in run.items()}
     ev = pytrec_eval.RelevanceEvaluator(qrels, {"ndcg_cut_10", "recall_100"})
     per_q = ev.evaluate(run)
+    if sink is not None:
+        for qid, v in sorted(per_q.items()):
+            sink.write(json.dumps({"qid": qid, "condition": cond, "ndcg_cut_10": v["ndcg_cut_10"],
+                                   "recall_100": v["recall_100"]}) + "\n")
+        sink.flush()
     n = len(per_q) or 1
     return {m: sum(v[m] for v in per_q.values()) / n for m in ("ndcg_cut_10", "recall_100")}
 
@@ -152,6 +173,35 @@ def summarize_diag(diags):
     return out
 
 
+class Deadline:
+    def __init__(self, clock_start, minutes):
+        self.at = clock_start + 60.0 * minutes
+        self.minutes = minutes
+
+    def passed(self):
+        return time.time() >= self.at
+
+
+def write_summary(path, results):
+    """Atomic replace, so a kill mid-write leaves the previous summary."""
+    tmp = path.with_suffix(".json.tmp")
+    tmp.write_text(json.dumps(results, indent=1) + "\n")
+    os.replace(tmp, path)
+
+
+def stop_at_deadline(path, results, where, perq=None):
+    if perq is not None:
+        perq.flush()
+        os.fsync(perq.fileno())
+        perq.close()
+    results["partial"] = True
+    results["deadline"] = {"fired_in": where, "unix_time": time.time()}
+    write_summary(path, results)
+    print(f"deadline reached ({where}); partial results in {path}", file=sys.stderr)
+    print(path)
+    sys.exit(0)
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--dataset", default="beir/scifact/test")
@@ -160,12 +210,29 @@ def main():
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--cache", default="cache")
     ap.add_argument("--out", default="results")
+    ap.add_argument("--limit-queries", type=int, default=0,
+                    help="evaluate only the first N queries that have qrels (0 = all)")
+    ap.add_argument("--deadline-minutes", type=float, default=690.0)
+    ap.add_argument("--clock-start", type=float, default=None,
+                    help="Unix time the deadline is counted from (default: now)")
     a = ap.parse_args()
+    deadline = Deadline(time.time() if a.clock_start is None else a.clock_start, a.deadline_minutes)
 
     tag = a.dataset.replace("/", "_") + "__" + a.model.replace("/", "_")
     cache = Path(a.cache)
     docs, queries, qrels = load(a.dataset)
+    if a.limit_queries > 0:
+        queries = queries[:a.limit_queries]
+        qrels = {qid: qrels[qid] for qid, _ in queries}
     print(f"{a.dataset}: {len(docs)} docs, {len(queries)} queries with qrels", file=sys.stderr)
+
+    results = {"dataset": a.dataset, "model": a.model, "depth": a.depth, "rrf_k": RRF_K, "ignore_identical_ids": True,
+               "n_docs": len(docs), "n_queries": len(queries), "conditions": {}}
+    out = Path(a.out)
+    out.mkdir(parents=True, exist_ok=True)
+    summary = out / f"{tag}.json"
+    if deadline.passed():
+        stop_at_deadline(summary, results, "before encoding")
 
     t0 = time.time()
     dvec = embed_all(a.model, [f"{t} {x}".strip() for _, t, x in docs], DOC_PREFIX.get(a.model, ""),
@@ -176,27 +243,33 @@ def main():
     kw = build_keyword(docs, cache / f"{a.dataset.replace('/', '_')}.fts.sqlite")
     print(f"indexes ready in {time.time() - t0:.0f}s", file=sys.stderr)
 
-    results = {"dataset": a.dataset, "model": a.model, "depth": a.depth, "rrf_k": RRF_K,
-               "n_docs": len(docs), "n_queries": len(queries), "conditions": {}}
-    out = Path(a.out)
-    out.mkdir(parents=True, exist_ok=True)
     perq = (out / f"{tag}.perquery.jsonl").open("w")
+    pereval = (out / f"{tag}.pereval.jsonl").open("w")
     for cond in CONDITIONS:
         run, diags, secs = {}, [], 0.0
         for (qid, q), qv in zip(queries, qvec):
+            if deadline.passed():
+                if run:
+                    results["conditions"][cond] = {**evaluate(run, qrels, cond, pereval), **summarize_diag(diags),
+                                                   "mean_query_ms": 1000.0 * secs / len(run),
+                                                   "n_queries_evaluated": len(run)}
+                stop_at_deadline(summary, results, f"{cond} after {len(run)} queries", perq)
             t1 = time.perf_counter()
             scores, diag = run_query(cond, q, qv, kw, dense, a.depth)
             secs += time.perf_counter() - t1
             run[qid] = {str(d): float(s) for d, s in scores.items()}
             diags.append(diag)
             perq.write(json.dumps({"qid": qid, "condition": cond, **diag}) + "\n")
-        results["conditions"][cond] = {**evaluate(run, qrels), **summarize_diag(diags),
+        results["conditions"][cond] = {**evaluate(run, qrels, cond, pereval), **summarize_diag(diags),
                                        "mean_query_ms": 1000.0 * secs / max(1, len(queries))}
         print(cond, json.dumps(results["conditions"][cond]), file=sys.stderr)
+        perq.flush()
+        write_summary(summary, {**results, "partial": True})
     perq.close()
+    pereval.close()
 
-    (out / f"{tag}.json").write_text(json.dumps(results, indent=1) + "\n")
-    print(out / f"{tag}.json")
+    write_summary(summary, results)
+    print(summary)
 
 
 if __name__ == "__main__":

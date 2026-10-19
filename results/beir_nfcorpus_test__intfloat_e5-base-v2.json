@@ -1,0 +1,50 @@
+{
+ "dataset": "beir/nfcorpus/test",
+ "model": "intfloat/e5-base-v2",
+ "depth": 100,
+ "rrf_k": 60,
+ "ignore_identical_ids": true,
+ "n_docs": 3633,
+ "n_queries": 323,
+ "conditions": {
+  "bm25_and": {
+   "ndcg_cut_10": 0.19328748232833015,
+   "recall_100": 0.09468591006219289,
+   "empty_rate": 0.5077399380804953,
+   "mean_query_ms": 0.20907633435837328
+  },
+  "bm25_or_raw": {
+   "ndcg_cut_10": 0.3037511132701872,
+   "recall_100": 0.23181089503141783,
+   "empty_rate": 0.07739938080495357,
+   "mean_query_ms": 2.7272139690313697
+  },
+  "bm25_or": {
+   "ndcg_cut_10": 0.30593933783412974,
+   "recall_100": 0.23332407907648695,
+   "empty_rate": 0.07739938080495357,
+   "mean_query_ms": 1.0739804891641664
+  },
+  "dense": {
+   "ndcg_cut_10": 0.35510251404870363,
+   "recall_100": 0.3185760067364094,
+   "mean_query_ms": 0.41033316097479655
+  },
+  "hybrid_and": {
+   "ndcg_cut_10": 0.3678957779251112,
+   "recall_100": 0.3226757109288711,
+   "keyword_empty_rate": 0.5077399380804953,
+   "at_ceiling_rate": 0.5139318885448917,
+   "multi_leg_docs_mean": 3.7863777089783284,
+   "mean_query_ms": 1.0421005975172264
+  },
+  "hybrid_or": {
+   "ndcg_cut_10": 0.3519764673412563,
+   "recall_100": 0.32788191530012983,
+   "keyword_empty_rate": 0.07739938080495357,
+   "at_ceiling_rate": 0.07739938080495357,
+   "multi_leg_docs_mean": 20.563467492260063,
+   "mean_query_ms": 2.6343234829757995
+  }
+ }
+}

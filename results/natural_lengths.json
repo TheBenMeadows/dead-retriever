@@ -1,130 +1,105 @@
 {
+ "pooled_without": "beir_arguana",
  "buckets": [
   {
-   "n_keyword": "1",
-   "fired": 2,
-   "total": 88,
-   "rate": 0.022727272727272728
+   "n_keyword": "1-3",
+   "fired": 137,
+   "total": 726,
+   "rate": 0.1887052341597796
   },
   {
-   "n_keyword": "2-3",
-   "fired": 9,
-   "total": 144,
-   "rate": 0.0625
+   "n_keyword": "4-49",
+   "fired": 35,
+   "total": 588,
+   "rate": 0.05952380952380952
   },
   {
-   "n_keyword": "4-9",
-   "fired": 0,
-   "total": 118,
-   "rate": 0.0
-  },
-  {
-   "n_keyword": "10-49",
-   "fired": 0,
-   "total": 164,
-   "rate": 0.0
-  },
-  {
-   "n_keyword": "50-99",
-   "fired": 0,
-   "total": 70,
-   "rate": 0.0
-  },
-  {
-   "n_keyword": "100",
-   "fired": 0,
-   "total": 942,
-   "rate": 0.0
+   "n_keyword": "50-100",
+   "fired": 4,
+   "total": 6636,
+   "rate": 0.0006027727546714888
   }
  ],
- "per_file": {
-  "beir_nfcorpus_test__BAAI_bge-base-en-v1.5.perquery.jsonl": {
-   "1": [
-    2,
-    39
-   ],
-   "50-99": [
-    0,
-    35
-   ],
-   "4-9": [
-    0,
-    59
-   ],
-   "10-49": [
-    0,
-    79
-   ],
-   "2-3": [
-    4,
-    71
-   ],
-   "100": [
-    0,
-    174
-   ]
+ "by_collection": {
+  "beir_arguana": {
+   "1-3": {
+    "fired": 0,
+    "total": 4218
+   },
+   "50-100": {
+    "fired": 0,
+    "total": 4218
+   }
   },
-  "beir_nfcorpus_test__nomic-ai_nomic-embed-text-v1.5.perquery.jsonl": {
-   "1": [
-    0,
-    39
-   ],
-   "50-99": [
-    0,
-    35
-   ],
-   "4-9": [
-    0,
-    59
-   ],
-   "10-49": [
-    0,
-    79
-   ],
-   "2-3": [
-    5,
-    71
-   ],
-   "100": [
-    0,
-    174
-   ]
+  "beir_fiqa_test": {
+   "1-3": {
+    "fired": 90,
+    "total": 219
+   },
+   "4-49": {
+    "fired": 25,
+    "total": 105
+   },
+   "50-100": {
+    "fired": 4,
+    "total": 1974
+   }
   },
-  "beir_scifact_test__BAAI_bge-base-en-v1.5.perquery.jsonl": {
-   "1": [
-    0,
-    5
-   ],
-   "2-3": [
-    0,
-    1
-   ],
-   "100": [
-    0,
-    297
-   ],
-   "10-49": [
-    0,
-    3
-   ]
+  "beir_nfcorpus_test": {
+   "1-3": {
+    "fired": 13,
+    "total": 330
+   },
+   "50-100": {
+    "fired": 0,
+    "total": 627
+   },
+   "4-49": {
+    "fired": 0,
+    "total": 414
+   }
   },
-  "beir_scifact_test__nomic-ai_nomic-embed-text-v1.5.perquery.jsonl": {
-   "1": [
-    0,
-    5
-   ],
-   "2-3": [
-    0,
-    1
-   ],
-   "100": [
-    0,
-    297
-   ],
-   "10-49": [
-    0,
-    3
-   ]
+  "beir_scidocs": {
+   "1-3": {
+    "fired": 18,
+    "total": 141
+   },
+   "4-49": {
+    "fired": 3,
+    "total": 42
+   },
+   "50-100": {
+    "fired": 0,
+    "total": 2991
+   }
+  },
+  "beir_scifact_test": {
+   "1-3": {
+    "fired": 0,
+    "total": 18
+   },
+   "50-100": {
+    "fired": 0,
+    "total": 891
+   },
+   "4-49": {
+    "fired": 0,
+    "total": 9
+   }
+  },
+  "beir_trec-covid": {
+   "4-49": {
+    "fired": 7,
+    "total": 18
+   },
+   "1-3": {
+    "fired": 16,
+    "total": 18
+   },
+   "50-100": {
+    "fired": 0,
+    "total": 153
+   }
   }
  }
 }

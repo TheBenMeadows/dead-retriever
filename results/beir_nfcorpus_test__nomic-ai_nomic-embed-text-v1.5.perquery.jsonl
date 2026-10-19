@@ -1788,7 +1788,7 @@
 {"qid": "PLAIN-1897", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 3, "max_score": 0.03278688524590164, "n_keyword": 5, "n_dense": 100}
 {"qid": "PLAIN-1909", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 37, "max_score": 0.03279569892473118, "n_keyword": 56, "n_dense": 100}
 {"qid": "PLAIN-1919", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 45, "max_score": 0.03306010928961749, "n_keyword": 100, "n_dense": 100}
-{"qid": "PLAIN-1929", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 29, "max_score": 0.03125763125763126, "n_keyword": 100, "n_dense": 100}
+{"qid": "PLAIN-1929", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 29, "max_score": 0.031024531024531024, "n_keyword": 100, "n_dense": 100}
 {"qid": "PLAIN-1940", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 4, "max_score": 0.03333333333333333, "n_keyword": 7, "n_dense": 100}
 {"qid": "PLAIN-1950", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 4, "max_score": 0.03333333333333333, "n_keyword": 5, "n_dense": 100}
 {"qid": "PLAIN-1962", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 1, "max_score": 0.029051670471052088, "n_keyword": 2, "n_dense": 100}

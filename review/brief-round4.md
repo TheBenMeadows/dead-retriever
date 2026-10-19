@@ -1,0 +1,19 @@
+# Review: dead-retriever paper, journal draft — round 4
+
+You are reviewing a paper about to be submitted to the Information Retrieval Research Journal (IRRJ; single-blind, normal papers are "about 20 pages", SIGIR/ECIR-like). An earlier 10-page version went through three review rounds (nine reviews) that settled the thesis: the 1/k ceiling in reciprocal rank fusion detects zero overlap between retrievers, not an empty retriever. That version is on Zenodo and pending at arXiv. For the journal the reproduction was expanded from 2 BEIR collections and 2 encoders to 6 collections (SciFact, NFCorpus, ArguAna, SciDocs, FiQA, TREC-COVID) and 3 encoders (bge-base-en-v1.5, nomic-embed-text-v1.5, e5-base-v2), 22,362 hybrid query runs. Section 6, the abstract, the limitations, the operator advice and both appendices were rewritten on the new data and have not been reviewed by anyone. The new data overturned two claims of the old version (no ceiling over a keyword leg of 4+ documents; the K > k leak never observed) and added a blind spot (ArguAna, where the buggy leg returns the query's own text). Answer as the one careful reviewer whose job is to stop the author from submitting something wrong. Formulas, section names and quoted phrases over adjectives; no compliments; do not restate the paper. Under 1200 words.
+
+## What to do
+
+1. **Read the whole paper once as a journal referee would** and name anything that would get it rejected or embarrass the author: a false sentence, a number that does not follow from the tables or the JSON below, a claim wider than the evidence, a citation that does not say what it is cited for, an inconsistency between sections (Sections 1 to 5 were not rewritten; check they still agree with the new Section 6).
+2. **Section 6 numbers.** Spot-check the prose figures against the inline result files: the legs table, the AND-empty counts, the content-token ordering, the ArguAna counts, the excess-ceiling counts and percentages, the natural row-count rates, the effectiveness counts (5 of 18, 9 of 18, 12 of 18) and the named gains and losses. Quote any figure you cannot reproduce.
+3. **Interpretation.** Are these stated no wider than the evidence: (a) the empty rate ordered by content tokens per query across five collections; (b) short-list disjointness growing with corpus size; (c) the ArguAna self-match generalising to real systems that index the text they are queried with; (d) "a monitor for leg health and a verdict on retrieval effectiveness are different instruments"?
+4. **Journal fit.** What would an IRRJ referee ask for that the paper lacks, ranked by how likely it is to decide acceptance (for example significance tests on the effectiveness comparisons, a section structure, related work depth, a figure)? One sentence each, and say which you would require and which are optional. No new experiments unless one is essential.
+5. **Abstract and title.** Do they claim exactly what the body shows, no more?
+
+## Attached (inline below; do not use any tool: do not read files, run commands, or fetch URLs; answer in your final message)
+
+- `paper/main.tex` — the paper (IRRJ LaTeX style).
+- `paper/refs.bib` — the bibliography (every entry was checked against Crossref, arXiv or the publisher listing; flag only if you know one to be wrong).
+- `results/keyword_facts.json` — encoder-free facts per collection (query tokens, content tokens, what the quoted-AND leg returns).
+- `results/natural_lengths.json` — ceiling firing rate by the keyword leg's natural row count.
+- `results/beir_<collection>__<encoder>.json` — the 18 summary files (six conditions each: nDCG@10, Recall@100, keyword-empty rate, at-ceiling rate, mean shared documents, mean query ms). Per-query rows are too large to inline; the audit script checks the per-query figures against them, and the author will verify any count you dispute.

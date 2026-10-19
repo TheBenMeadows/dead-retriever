@@ -1,0 +1,300 @@
+{"qid": "1", "condition": "bm25_and", "empty": false, "n_keyword": 22}
+{"qid": "2", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "3", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "4", "condition": "bm25_and", "empty": false, "n_keyword": 7}
+{"qid": "5", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "6", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "7", "condition": "bm25_and", "empty": false, "n_keyword": 2}
+{"qid": "8", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "9", "condition": "bm25_and", "empty": false, "n_keyword": 6}
+{"qid": "10", "condition": "bm25_and", "empty": false, "n_keyword": 2}
+{"qid": "11", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "12", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "13", "condition": "bm25_and", "empty": false, "n_keyword": 1}
+{"qid": "14", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "15", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "16", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "17", "condition": "bm25_and", "empty": false, "n_keyword": 21}
+{"qid": "18", "condition": "bm25_and", "empty": false, "n_keyword": 4}
+{"qid": "19", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "20", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "21", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "22", "condition": "bm25_and", "empty": false, "n_keyword": 22}
+{"qid": "23", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "24", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "25", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "26", "condition": "bm25_and", "empty": false, "n_keyword": 3}
+{"qid": "27", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "28", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "29", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "30", "condition": "bm25_and", "empty": false, "n_keyword": 60}
+{"qid": "31", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "32", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "33", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "34", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "35", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "36", "condition": "bm25_and", "empty": false, "n_keyword": 3}
+{"qid": "37", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "38", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "39", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "40", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "41", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "42", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "43", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "44", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "45", "condition": "bm25_and", "empty": false, "n_keyword": 3}
+{"qid": "46", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "47", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "48", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "49", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "50", "condition": "bm25_and", "empty": true, "n_keyword": 0}
+{"qid": "1", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "2", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "3", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "4", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "5", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "6", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "7", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "8", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "9", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "10", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "11", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "12", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "13", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "14", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "15", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "16", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "17", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "18", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "19", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "20", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "21", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "22", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "23", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "24", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "25", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "26", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "27", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "28", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "29", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "30", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "31", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "32", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "33", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "34", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "35", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "36", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "37", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "38", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "39", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "40", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "41", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "42", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "43", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "44", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "45", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "46", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "47", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "48", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "49", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "50", "condition": "bm25_or_raw", "empty": false, "n_keyword": 100}
+{"qid": "1", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "2", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "3", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "4", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "5", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "6", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "7", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "8", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "9", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "10", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "11", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "12", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "13", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "14", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "15", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "16", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "17", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "18", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "19", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "20", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "21", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "22", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "23", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "24", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "25", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "26", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "27", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "28", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "29", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "30", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "31", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "32", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "33", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "34", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "35", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "36", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "37", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "38", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "39", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "40", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "41", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "42", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "43", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "44", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "45", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "46", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "47", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "48", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "49", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "50", "condition": "bm25_or", "empty": false, "n_keyword": 100}
+{"qid": "1", "condition": "dense", "n_dense": 100}
+{"qid": "2", "condition": "dense", "n_dense": 100}
+{"qid": "3", "condition": "dense", "n_dense": 100}
+{"qid": "4", "condition": "dense", "n_dense": 100}
+{"qid": "5", "condition": "dense", "n_dense": 100}
+{"qid": "6", "condition": "dense", "n_dense": 100}
+{"qid": "7", "condition": "dense", "n_dense": 100}
+{"qid": "8", "condition": "dense", "n_dense": 100}
+{"qid": "9", "condition": "dense", "n_dense": 100}
+{"qid": "10", "condition": "dense", "n_dense": 100}
+{"qid": "11", "condition": "dense", "n_dense": 100}
+{"qid": "12", "condition": "dense", "n_dense": 100}
+{"qid": "13", "condition": "dense", "n_dense": 100}
+{"qid": "14", "condition": "dense", "n_dense": 100}
+{"qid": "15", "condition": "dense", "n_dense": 100}
+{"qid": "16", "condition": "dense", "n_dense": 100}
+{"qid": "17", "condition": "dense", "n_dense": 100}
+{"qid": "18", "condition": "dense", "n_dense": 100}
+{"qid": "19", "condition": "dense", "n_dense": 100}
+{"qid": "20", "condition": "dense", "n_dense": 100}
+{"qid": "21", "condition": "dense", "n_dense": 100}
+{"qid": "22", "condition": "dense", "n_dense": 100}
+{"qid": "23", "condition": "dense", "n_dense": 100}
+{"qid": "24", "condition": "dense", "n_dense": 100}
+{"qid": "25", "condition": "dense", "n_dense": 100}
+{"qid": "26", "condition": "dense", "n_dense": 100}
+{"qid": "27", "condition": "dense", "n_dense": 100}
+{"qid": "28", "condition": "dense", "n_dense": 100}
+{"qid": "29", "condition": "dense", "n_dense": 100}
+{"qid": "30", "condition": "dense", "n_dense": 100}
+{"qid": "31", "condition": "dense", "n_dense": 100}
+{"qid": "32", "condition": "dense", "n_dense": 100}
+{"qid": "33", "condition": "dense", "n_dense": 100}
+{"qid": "34", "condition": "dense", "n_dense": 100}
+{"qid": "35", "condition": "dense", "n_dense": 100}
+{"qid": "36", "condition": "dense", "n_dense": 100}
+{"qid": "37", "condition": "dense", "n_dense": 100}
+{"qid": "38", "condition": "dense", "n_dense": 100}
+{"qid": "39", "condition": "dense", "n_dense": 100}
+{"qid": "40", "condition": "dense", "n_dense": 100}
+{"qid": "41", "condition": "dense", "n_dense": 100}
+{"qid": "42", "condition": "dense", "n_dense": 100}
+{"qid": "43", "condition": "dense", "n_dense": 100}
+{"qid": "44", "condition": "dense", "n_dense": 100}
+{"qid": "45", "condition": "dense", "n_dense": 100}
+{"qid": "46", "condition": "dense", "n_dense": 100}
+{"qid": "47", "condition": "dense", "n_dense": 100}
+{"qid": "48", "condition": "dense", "n_dense": 100}
+{"qid": "49", "condition": "dense", "n_dense": 100}
+{"qid": "50", "condition": "dense", "n_dense": 100}
+{"qid": "1", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 5, "max_score": 0.03279569892473118, "n_keyword": 22, "n_dense": 100}
+{"qid": "2", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "3", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "4", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 7, "n_dense": 100}
+{"qid": "5", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "6", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "7", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 2, "n_dense": 100}
+{"qid": "8", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "9", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 4, "max_score": 0.03229166666666666, "n_keyword": 6, "n_dense": 100}
+{"qid": "10", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 2, "n_dense": 100}
+{"qid": "11", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "12", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "13", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 1, "n_dense": 100}
+{"qid": "14", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "15", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "16", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "17", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 2, "max_score": 0.02144082332761578, "n_keyword": 21, "n_dense": 100}
+{"qid": "18", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 4, "n_dense": 100}
+{"qid": "19", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "20", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "21", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "22", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 6, "max_score": 0.03159203980099502, "n_keyword": 22, "n_dense": 100}
+{"qid": "23", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "24", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "25", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "26", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 3, "n_dense": 100}
+{"qid": "27", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "28", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "29", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "30", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 26, "max_score": 0.030536130536130537, "n_keyword": 60, "n_dense": 100}
+{"qid": "31", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "32", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "33", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "34", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "35", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "36", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 3, "n_dense": 100}
+{"qid": "37", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "38", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "39", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "40", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "41", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "42", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "43", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "44", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "45", "condition": "hybrid_and", "keyword_empty": false, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 3, "n_dense": 100}
+{"qid": "46", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "47", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "48", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "49", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "50", "condition": "hybrid_and", "keyword_empty": true, "at_ceiling": true, "multi_leg_docs": 0, "max_score": 0.016666666666666666, "n_keyword": 0, "n_dense": 100}
+{"qid": "1", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 18, "max_score": 0.03279569892473118, "n_keyword": 100, "n_dense": 100}
+{"qid": "2", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 20, "max_score": 0.030776515151515152, "n_keyword": 100, "n_dense": 100}
+{"qid": "3", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 10, "max_score": 0.03159203980099502, "n_keyword": 100, "n_dense": 100}
+{"qid": "4", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 5, "max_score": 0.03333333333333333, "n_keyword": 100, "n_dense": 100}
+{"qid": "5", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 29, "max_score": 0.03137254901960784, "n_keyword": 100, "n_dense": 100}
+{"qid": "6", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 21, "max_score": 0.02792120864410021, "n_keyword": 100, "n_dense": 100}
+{"qid": "7", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 16, "max_score": 0.03021353930031804, "n_keyword": 100, "n_dense": 100}
+{"qid": "8", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 18, "max_score": 0.03306010928961749, "n_keyword": 100, "n_dense": 100}
+{"qid": "9", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 20, "max_score": 0.028160919540229885, "n_keyword": 100, "n_dense": 100}
+{"qid": "10", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 33, "max_score": 0.030621785881252923, "n_keyword": 100, "n_dense": 100}
+{"qid": "11", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 18, "max_score": 0.03018018018018018, "n_keyword": 100, "n_dense": 100}
+{"qid": "12", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 15, "max_score": 0.028294573643410852, "n_keyword": 100, "n_dense": 100}
+{"qid": "13", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 30, "max_score": 0.03333333333333333, "n_keyword": 100, "n_dense": 100}
+{"qid": "14", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 22, "max_score": 0.032539682539682535, "n_keyword": 100, "n_dense": 100}
+{"qid": "15", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 8, "max_score": 0.03333333333333333, "n_keyword": 100, "n_dense": 100}
+{"qid": "16", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 27, "max_score": 0.03278688524590164, "n_keyword": 100, "n_dense": 100}
+{"qid": "17", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 22, "max_score": 0.029116045245077504, "n_keyword": 100, "n_dense": 100}
+{"qid": "18", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 18, "max_score": 0.03229166666666666, "n_keyword": 100, "n_dense": 100}
+{"qid": "19", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 16, "max_score": 0.03057889822595705, "n_keyword": 100, "n_dense": 100}
+{"qid": "20", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 27, "max_score": 0.032266458495966696, "n_keyword": 100, "n_dense": 100}
+{"qid": "21", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 22, "max_score": 0.032018442622950824, "n_keyword": 100, "n_dense": 100}
+{"qid": "22", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 26, "max_score": 0.03159203980099502, "n_keyword": 100, "n_dense": 100}
+{"qid": "23", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 22, "max_score": 0.027651515151515153, "n_keyword": 100, "n_dense": 100}
+{"qid": "24", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 38, "max_score": 0.03057889822595705, "n_keyword": 100, "n_dense": 100}
+{"qid": "25", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 16, "max_score": 0.031754032258064516, "n_keyword": 100, "n_dense": 100}
+{"qid": "26", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 16, "max_score": 0.028177225029148854, "n_keyword": 100, "n_dense": 100}
+{"qid": "27", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 25, "max_score": 0.03115942028985507, "n_keyword": 100, "n_dense": 100}
+{"qid": "28", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 38, "max_score": 0.026567656765676566, "n_keyword": 100, "n_dense": 100}
+{"qid": "29", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 30, "max_score": 0.03205128205128205, "n_keyword": 100, "n_dense": 100}
+{"qid": "30", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 50, "max_score": 0.0288981288981289, "n_keyword": 100, "n_dense": 100}
+{"qid": "31", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 4, "max_score": 0.02063301282051282, "n_keyword": 100, "n_dense": 100}
+{"qid": "32", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 7, "max_score": 0.03306010928961749, "n_keyword": 100, "n_dense": 100}
+{"qid": "33", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 8, "max_score": 0.03128054740957967, "n_keyword": 100, "n_dense": 100}
+{"qid": "34", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 2, "max_score": 0.021390937829293993, "n_keyword": 100, "n_dense": 100}
+{"qid": "35", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 9, "max_score": 0.025859192525859193, "n_keyword": 100, "n_dense": 100}
+{"qid": "36", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 36, "max_score": 0.03306010928961749, "n_keyword": 100, "n_dense": 100}
+{"qid": "37", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 19, "max_score": 0.030886196246139225, "n_keyword": 100, "n_dense": 100}
+{"qid": "38", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 17, "max_score": 0.03279569892473118, "n_keyword": 100, "n_dense": 100}
+{"qid": "39", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 39, "max_score": 0.03279569892473118, "n_keyword": 100, "n_dense": 100}
+{"qid": "40", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 40, "max_score": 0.030555555555555555, "n_keyword": 100, "n_dense": 100}
+{"qid": "41", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 20, "max_score": 0.030365296803652967, "n_keyword": 100, "n_dense": 100}
+{"qid": "42", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 34, "max_score": 0.03057889822595705, "n_keyword": 100, "n_dense": 100}
+{"qid": "43", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 34, "max_score": 0.031544957774465976, "n_keyword": 100, "n_dense": 100}
+{"qid": "44", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 26, "max_score": 0.03205128205128205, "n_keyword": 100, "n_dense": 100}
+{"qid": "45", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 20, "max_score": 0.029418126757516764, "n_keyword": 100, "n_dense": 100}
+{"qid": "46", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 27, "max_score": 0.03205128205128205, "n_keyword": 100, "n_dense": 100}
+{"qid": "47", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 16, "max_score": 0.02610062893081761, "n_keyword": 100, "n_dense": 100}
+{"qid": "48", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 13, "max_score": 0.03252247488101534, "n_keyword": 100, "n_dense": 100}
+{"qid": "49", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 8, "max_score": 0.029906956136464335, "n_keyword": 100, "n_dense": 100}
+{"qid": "50", "condition": "hybrid_or", "keyword_empty": false, "at_ceiling": false, "multi_leg_docs": 26, "max_score": 0.03229166666666666, "n_keyword": 100, "n_dense": 100}
