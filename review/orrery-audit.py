@@ -380,7 +380,7 @@ def check_prose_beir():
     check("prose: short-list rate 0/18, 13/330, 18/141, 90/219, 16/18 with sizes 5.2k, 3.6k, 26k, 58k, 171k",
           short == {"SciFact": (0, 18), "NFCorpus": (13, 330), "SciDocs": (18, 141), "FiQA": (90, 219), "TREC-COVID": (16, 18)}
           and (round(sizes["SciFact"] / 1000, 1), round(sizes["NFCorpus"] / 1000, 1), round(sizes["SciDocs"] / 1000), round(sizes["FiQA"] / 1000), round(sizes["TREC-COVID"] / 1000)) == (5.2, 3.6, 26, 58, 171)
-          and said("the at-ceiling share is highest on the three largest collections"), f"{short}")
+          and said("the at-ceiling share is highest on SciDocs, FiQA and TREC-COVID, the three largest collections"), f"{short}")
     tq = set()
     for e in ENC:
         for qid, r in pq[(e, "TREC-COVID")].items():
@@ -432,7 +432,7 @@ def check_prose_beir():
     check("prose: SciFact bge buggy hybrid above dense by 0.001 (printed)", sb == 0.001 and said("by 0.001 on SciFact and by 0.008 to 0.014 on NFCorpus"), f"{sb}")
     # Abstract.
     check("abstract: 50.8 to 98.0% on five collections, 174 runs, two runs, raises overlap, almost never relevant",
-          said("50.8 to 98.0\\% of queries on five collections", "In 174 further query runs the keyword list was nonempty but shared nothing", "In two runs under the repaired builder, the lists shared one document at deep ranks", "raises overlap in every collection--encoder pair", "almost never relevant")
+          said("50.8 to 98.0\\% of queries on five collections", "at the ceiling in 174 query runs where the keyword list was nonempty but shared nothing", "in two runs under the repaired builder where the lists shared one document at deep ranks", "raises overlap in every collection--encoder pair", "almost never relevant")
           and not said("restores overlap") and not said("two working retrievers"), "")
     check("abstract: the history claim is stated as an inference", said("is an inference from the unchanged code and the replay", "keeps no query log", "held on all ten replayed queries", "on every replayed query") and not said("nobody noticed") and not said("from the start") and not said("had never looked empty"), "")
     check("protocol: FiQA stated as observed, not inferred", said("FiQA's figures are identical with and without the rule"), "")
