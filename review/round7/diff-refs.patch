@@ -1,0 +1,52 @@
+diff --git a/paper/refs.bib b/paper/refs.bib
+index 4e73760..2082421 100644
+--- a/paper/refs.bib
++++ b/paper/refs.bib
+@@ -228,3 +228,47 @@
+   year      = {2007},
+   pages     = {623--632}
+ }
++@inproceedings{kumaran2007shorter,
++  author    = {Giridhar Kumaran and James Allan},
++  title     = {A Case for Shorter Queries, and Helping Users Create Them},
++  booktitle = {Human Language Technologies 2007: The Conference of the North American Chapter of the Association for Computational Linguistics; Proceedings of the Main Conference},
++  year      = {2007},
++  pages     = {220--227}
++}
++@inproceedings{bendersky2008verbose,
++  author    = {Michael Bendersky and W. Bruce Croft},
++  title     = {Discovering Key Concepts in Verbose Queries},
++  booktitle = {Proceedings of the 31st Annual International {ACM} {SIGIR} Conference on Research and Development in Information Retrieval},
++  year      = {2008},
++  pages     = {491--498}
++}
++@article{nuray2006ranking,
++  author  = {Rabia Nuray and Fazli Can},
++  title   = {Automatic Ranking of Information Retrieval Systems Using Data Fusion},
++  journal = {Information Processing \& Management},
++  volume  = {42},
++  number  = {3},
++  year    = {2006},
++  pages   = {595--614}
++}
++@inproceedings{aslam2001metasearch,
++  author    = {Javed A. Aslam and Mark Montague},
++  title     = {Models for Metasearch},
++  booktitle = {Proceedings of the 24th Annual International {ACM} {SIGIR} Conference on Research and Development in Information Retrieval},
++  year      = {2001},
++  pages     = {276--284}
++}
++@inproceedings{chen2022hybrid,
++  author    = {Tao Chen and Mingyang Zhang and Jing Lu and Michael Bendersky and Marc Najork},
++  title     = {Out-of-Domain Semantics to the Rescue! {Zero}-Shot Hybrid Retrieval Models},
++  booktitle = {Advances in Information Retrieval: 44th European Conference on {IR} Research ({ECIR} 2022)},
++  year      = {2022},
++  pages     = {95--110}
++}
++@inproceedings{wang2021interpolation,
++  author    = {Shuai Wang and Shengyao Zhuang and Guido Zuccon},
++  title     = {{BERT}-Based Dense Retrievers Require Interpolation with {BM25} for Effective Passage Retrieval},
++  booktitle = {Proceedings of the 2021 {ACM} {SIGIR} International Conference on Theory of Information Retrieval ({ICTIR})},
++  year      = {2021},
++  pages     = {317--324}
++}
