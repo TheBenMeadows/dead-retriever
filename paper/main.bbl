@@ -1,16 +1,23 @@
-\begin{thebibliography}{28}
+\begin{thebibliography}{32}
 \providecommand{\natexlab}[1]{#1}
 \providecommand{\url}[1]{\texttt{#1}}
 \expandafter\ifx\csname urlstyle\endcsname\relax
   \providecommand{\doi}[1]{doi: #1}\else
   \providecommand{\doi}{doi: \begingroup \urlstyle{rm}\Url}\fi
 
-\bibitem[{Anthropic}(2024)]{anthropic2024contextual}
-{Anthropic}.
-\newblock Introducing contextual retrieval.
-\newblock \url{https://www.anthropic.com/engineering/contextual-retrieval},
-  2024.
-\newblock Accessed 2026-10-07.
+\bibitem[Aslam and Montague(2001)]{aslam2001metasearch}
+Javed~A. Aslam and Mark Montague.
+\newblock Models for metasearch.
+\newblock In \emph{Proceedings of the 24th Annual International {ACM} {SIGIR}
+  Conference on Research and Development in Information Retrieval}, pages
+  276--284, 2001.
+
+\bibitem[Bendersky and Croft(2008)]{bendersky2008verbose}
+Michael Bendersky and W.~Bruce Croft.
+\newblock Discovering key concepts in verbose queries.
+\newblock In \emph{Proceedings of the 31st Annual International {ACM} {SIGIR}
+  Conference on Research and Development in Information Retrieval}, pages
+  491--498, 2008.
 
 \bibitem[Boteva et~al.(2016)Boteva, Ghalandari, Sokolov, and
   Riezler]{boteva2016nfcorpus}
@@ -25,6 +32,14 @@ Sebastian Bruch, Siyu Gai, and Amir Ingber.
 \newblock An analysis of fusion functions for hybrid retrieval.
 \newblock \emph{{ACM} Transactions on Information Systems}, 42\penalty0
   (1):\penalty0 20:1--20:35, 2024.
+
+\bibitem[Chen et~al.(2022)Chen, Zhang, Lu, Bendersky, and
+  Najork]{chen2022hybrid}
+Tao Chen, Mingyang Zhang, Jing Lu, Michael Bendersky, and Marc Najork.
+\newblock Out-of-domain semantics to the rescue! {Zero}-shot hybrid retrieval
+  models.
+\newblock In \emph{Advances in Information Retrieval: 44th European Conference
+  on {IR} Research ({ECIR} 2022)}, pages 95--110, 2022.
 
 \bibitem[Cohan et~al.(2020)Cohan, Feldman, Beltagy, Downey, and
   Weld]{cohan2020specter}
@@ -85,6 +100,13 @@ Chris Kamphuis, Arjen~P. de~Vries, Leonid Boytsov, and Jimmy Lin.
 \newblock In \emph{Advances in Information Retrieval: 42nd European Conference
   on {IR} Research}, pages 28--34, 2020.
 
+\bibitem[Kumaran and Allan(2007)]{kumaran2007shorter}
+Giridhar Kumaran and James Allan.
+\newblock A case for shorter queries, and helping users create them.
+\newblock In \emph{Human Language Technologies 2007: The Conference of the
+  North American Chapter of the Association for Computational Linguistics;
+  Proceedings of the Main Conference}, pages 220--227, 2007.
+
 \bibitem[Lee(1997)]{lee1997analyses}
 Joon~Ho Lee.
 \newblock Analyses of multiple evidence combination.
@@ -123,11 +145,11 @@ Mark Montague and Javed~A. Aslam.
 \newblock In \emph{Proceedings of the Tenth International Conference on
   Information and Knowledge Management}, pages 427--433, 2001.
 
-\bibitem[Nogueira et~al.(2019)Nogueira, Yang, Lin, and
-  Cho]{nogueira2019doc2query}
-Rodrigo Nogueira, Wei Yang, Jimmy Lin, and Kyunghyun Cho.
-\newblock Document expansion by query prediction.
-\newblock \emph{arXiv preprint arXiv:1904.08375}, 2019.
+\bibitem[Nuray and Can(2006)]{nuray2006ranking}
+Rabia Nuray and Fazli Can.
+\newblock Automatic ranking of information retrieval systems using data fusion.
+\newblock \emph{Information Processing \& Management}, 42\penalty0
+  (3):\penalty0 595--614, 2006.
 
 \bibitem[Nussbaum et~al.(2024)Nussbaum, Morris, Duderstadt, and
   Mulyar]{nussbaum2024nomic}
@@ -194,6 +216,14 @@ Liang Wang, Nan Yang, Xiaolong Huang, Binxing Jiao, Linjun Yang, Daxin Jiang,
   Rangan Majumder, and Furu Wei.
 \newblock Text embeddings by weakly-supervised contrastive pre-training.
 \newblock \emph{arXiv preprint arXiv:2212.03533}, 2022.
+
+\bibitem[Wang et~al.(2021)Wang, Zhuang, and Zuccon]{wang2021interpolation}
+Shuai Wang, Shengyao Zhuang, and Guido Zuccon.
+\newblock {BERT}-based dense retrievers require interpolation with {BM25} for
+  effective passage retrieval.
+\newblock In \emph{Proceedings of the 2021 {ACM} {SIGIR} International
+  Conference on Theory of Information Retrieval ({ICTIR})}, pages 317--324,
+  2021.
 
 \bibitem[Webber et~al.(2010)Webber, Moffat, and Zobel]{webber2010rbo}
 William Webber, Alistair Moffat, and Justin Zobel.

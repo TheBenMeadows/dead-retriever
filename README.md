@@ -11,7 +11,7 @@ The bug that motivated this is an FTS5 keyword query built by quoting every toke
 - `dead_retriever/hybrid.py`: FTS5 keyword index, exact dense index, RRF, the three query builders (`and_quoted` reproduces the bug, `or_raw` is OR over every token, `or_bm25` is the fix), and `ceiling_report`.
 - `scripts/beir_run.py`: runs six conditions (bm25_and, bm25_or_raw, bm25_or, dense, hybrid_and, hybrid_or) on a BEIR collection and writes nDCG@10, Recall@100, mean query time, and per-query fusion diagnostics (`results/*.perquery.jsonl`). The paper uses SciFact, NFCorpus, ArguAna, SciDocs, FiQA and TREC-COVID with `bge-base-en-v1.5`, `nomic-embed-text-v1.5` and `e5-base-v2`. The GPU runs were made with the Kaggle kernel in `kaggle/`.
 - `scripts/keyword_facts.py`: encoder-free facts per collection (query length in the builder's tokens, what the quoted-AND leg returns, whether it returns the query's own text), written to `results/keyword_facts.json`.
-- `scripts/sweep_live_list.py`: the ceiling's firing rate when the fixed keyword list is capped at n documents (Table 5 of the paper; SciFact and NFCorpus), from the cached embeddings.
+- `scripts/sweep_live_list.py`: the ceiling's firing rate when the fixed keyword list is capped at n documents (Table 4 of the paper; SciFact and NFCorpus), from the cached embeddings.
 - `scripts/natural_lengths.py`: the ceiling's firing rate by the keyword leg's natural row count, from the per-query rows.
 - `scripts/tables.py` and `scripts/table1.py`: print the paper's table rows from the result files.
 - `review/orrery-audit.py`: checks every number in the paper against the result files and the code. `review/consensus.md` records the three outside review rounds.

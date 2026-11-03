@@ -1,0 +1,523 @@
+# Explain-back: read this paper and paraphrase it. Do not critique.
+
+You have never seen this work. Read ONLY the paper below (LaTeX source of a short information-retrieval paper). Then write, in your own words and without quoting the paper:
+
+1. **What this paper proposes** (2 to 5 sentences). What is the test, what does it detect, what does it not detect?
+2. **How the system in the incident works, according to this document** (2 to 5 sentences). What are its two retrievers, how are they fused, what went wrong, how was it found?
+3. **What the experiments show, according to this document** (3 to 6 sentences). Name the collections and the main numbers as you understood them.
+4. **Undefined or unclear terms.** List every project-specific term, symbol or phrase whose meaning you had to guess, and what you guessed.
+5. **Where you lost the thread.** Name any paragraph or section you had to read twice, by section name, and say in one sentence what made it hard.
+
+Do not evaluate the work, do not suggest changes, do not check numbers. Paraphrase only. Plain prose, under 700 words.
+
+Do not use any tool: do not read files, run commands, or fetch URLs. Answer in your final message.
+
+=== paper/main.tex ===
+
+\begin{document}
+\maketitle
+
+\begin{abstract}
+Hybrid search runs a keyword retriever and a dense retriever over the same corpus and fuses their ranked lists, usually with reciprocal rank fusion (RRF). If the keyword retriever silently returns nothing, the fused list still looks full, because the dense retriever fills it. This paper shows that the fused scores reveal the problem. RRF gives a document $1/(k+r)$ from each retriever that ranks it at position $r$. With per-retriever depth $K \le k$, a document returned by two retrievers always scores above $1/k$, and a document returned by one scores at most $1/k$. So a result list whose maximum fused score is $1/k$ contains no document that both retrievers returned. The test measures overlap, not health: two nonempty lists that share nothing produce the same ceiling as an empty list, and per-retriever row counts tell the two cases apart. I describe a production system whose keyword query builder quoted every token of an SQLite FTS5 query, which FTS5 reads as an AND over all of them. Replayed on ten real queries, the builder returned nothing for every conversational one, and the maximum fused score was $1/60$ on all ten. On six BEIR collections with three encoders, at $K = 100 > k = 60$ and 22\,362 hybrid query runs, the buggy builder returns nothing for 50.8 to 98.0\% of queries on five collections, and the ceiling missed none of those empty lists, as the derivation requires with two retrievers. It also appeared over 174 nonempty keyword lists that shared nothing with the dense list, mostly short lists on large corpora, and twice over lists that shared one document deep in both, the case $K > k$ leaves open. On the sixth collection, ArguAna, each query is itself a corpus document, so the buggy keyword list is never empty and almost never relevant: it returns the query's own text, the dense retriever returns it too, and the ceiling never appears. Repairing the keyword retriever raises overlap in every collection--encoder pair, but at nDCG@10 the repaired hybrid beats the dense retriever alone in 5 of 18 pairs (2 of them significant under a paired randomization test with Holm's correction) and loses to it in 13 (5 significant). Code, results, per-query diagnostics and this paper's source are at \url{https://github.com/TheBenMeadows/dead-retriever}.
+\end{abstract}
+
+\section{Introduction}
+\label{sec:intro}
+
+A hybrid search system runs two retrievers over the same documents, typically a keyword index scored by BM25 and a dense embedding index searched by vector similarity, and fuses the two ranked lists into one. Reciprocal rank fusion \citep[RRF;][]{cormack2009rrf} is the usual way to fuse them. It scores each document by the sum, over the retrievers that returned it, of $1/(k+r)$, where $r$ is the document's rank in that retriever's list and $k$ is a constant, 60 by convention.
+
+Fusion is forgiving by design. If one retriever returns nothing, the fused list is simply the other retriever's list, and the user still sees a full page of results. That is the right behaviour for a query one retriever cannot answer. It is also the reason a broken retriever can go unnoticed: nothing downstream of the fusion distinguishes ``the keyword retriever found nothing relevant'' from ``the keyword retriever is broken''.
+
+The fused scores can make that distinction. A document returned by only one retriever scores at most $1/k$ (rank 0 gives exactly $1/k$). A document returned by two retrievers, each cut at depth $K$, scores at least $2/(k+K-1)$, and that is above $1/k$ exactly when $K \le k$. So, at $K \le k$, a fused list whose maximum score is $1/k$ contains no document that both retrievers returned. The fusion already computes this number. Read per query, it says whether the two retrievers agreed on anything.
+
+I came to this through an incident. A personal search engine of mine fused an SQLite FTS5 keyword index with a dense index at $K = k = 60$. Its keyword query builder quoted every token of the query, and FTS5 reads a sequence of quoted phrases as an AND over all of them, so a conversational query of six or seven words matched no 1\,400-character chunk. The dense retriever filled every result list, and short technical queries, the kind used in spot checks, still matched. When the keyword retriever's row counts were finally logged, on 2026-08-18, they were zero on every conversational query, and the maximum fused score, which had been $1/60$ on every one of those queries, had twice been written down as ``RRF scores are flat''.
+
+The paper does four things.
+\begin{enumerate}
+\item It derives the ceiling and states its limits (Section~\ref{sec:ceiling}): the equivalence needs $K \le k$; one direction holds at any depth; at $K > k$ a document shared at deep ranks can hide below the ceiling; with two retrievers an empty list can never be missed.
+\item It reports the incident (Section~\ref{sec:incident}): the bug, the fix, and before-and-after counts from the production system.
+\item It measures the ceiling on six BEIR collections with three encoders, 22\,362 hybrid query runs (Sections~\ref{sec:setup} and~\ref{sec:results}): how often the buggy builder returns nothing, whether the ceiling catches it, where the ceiling and the row counts disagree and why, one collection on which the test is blind by construction, and whether repairing the keyword retriever improves retrieval.
+\item It says what a system that fuses should log (Section~\ref{sec:log}), within the limits of Section~\ref{sec:limits}.
+\end{enumerate}
+Section~\ref{sec:related} places the ceiling among the fusion and monitoring literature. Two negative results measured on the production system while its keyword retriever was broken are in Appendix~\ref{app:negative}; they are part of the incident's record, not evidence about the ceiling.
+
+\section{The ceiling}
+\label{sec:ceiling}
+
+Let $L$ retrievers each return a ranked list cut at depth $K$, with every document appearing at most once per list. Let $k$ be a positive integer, and let $r_\ell(d) \in \{0, \ldots, K-1\}$ be document $d$'s 0-based rank in retriever $\ell$'s list when $d$ is in it. Reciprocal rank fusion scores
+\[
+  s(d) \;=\; \sum_{\ell \,:\, d \in \text{list}_\ell} \frac{1}{k + r_\ell(d)} .
+\]
+A document in exactly one list scores at most $1/k$, at rank 0. A document in two lists scores at least $2/(k+K-1)$, at the last place of both. The second bound exceeds the first whenever
+\[
+  \frac{2}{k+K-1} > \frac{1}{k} \iff K \le k .
+\]
+So with $K \le k$, every document found by two or more retrievers outscores every document found by one, and for any fused list with at least one result:
+\begin{quote}
+$\max_d s(d) \le 1/k$ if and only if no document in the list was returned by more than one retriever.
+\end{quote}
+I call a list whose maximum fused score is $1/k$ a list \emph{at the ceiling}. Throughout, the scores are the unweighted RRF sums before any later filtering or rescaling, and ``at the ceiling'' means $\max_d s(d) \le 1/k + 10^{-12}$. The one-based RRF of \citet{cormack2009rrf} shifts every figure by one: the singleton ceiling is $1/(k+1)$, and strict separation holds for $K \le k+1$.
+
+Three qualifications bound what a ceiling means in practice.
+
+\paragraph{It is a statement about overlap, not about either retriever.} Two retrievers that both return $K$ documents and share none of them produce the same ceiling as one retriever and one empty list. So does a keyword list of one or two documents that the dense retriever did not return. In the incident, the keyword retriever returned rows on four of the ten replayed queries and the list was at the ceiling on all ten (Table~\ref{tab:prod}): those four keyword lists held one to three chunks, none of them in the dense top 60. The ceiling says no document was reinforced by agreement. The per-retriever row counts say whether that is because a list is empty, nearly empty, or nonempty and disjoint, and a system that fuses should log both.
+
+\paragraph{The equivalence needs $K \le k$.} One direction holds at any depth: a maximum above $1/k$ proves that some document was returned by two retrievers, because a singleton scores at most $1/k$ for every $K$. The other direction does not. With $K > k$, a document ranked deep in both lists scores below $1/k$ (rank 90 in both at $k = 60$ gives $2/150$), and one ranked exactly $k$ in both scores exactly $1/k$; two ranks $r_1, r_2$ combine to more than $1/k$ exactly when $r_1 r_2 < k^2$. At $K > k$, then, a maximum of $1/k$ shows that every retriever's top document is exclusive to it and leaves deeper overlap open. A system that keeps per-retriever ranks should count shared documents directly. The experiments in Section~\ref{sec:results} run at $K = 100 > k = 60$, report both, and measure how often the two disagree.
+
+\paragraph{With two retrievers, an empty list can never be missed.} If one of two lists is empty and the other is not, every fused document is a singleton and the list is at the ceiling. So with two retrievers the test has no false negatives for an empty list; everything it gets wrong is in the other direction, a ceiling over a nonempty list. With three or more retrievers an empty list can hide behind two nonempty lists that overlap. The equivalence itself holds for any $L$.
+
+\section{Related work}
+\label{sec:related}
+
+\citet{cormack2009rrf} proposed reciprocal rank fusion and set $k = 60$ by experiment; the system in the incident used that constant unchanged, which is what made a $1/60$ maximum recognisable on sight. The older fusion literature studied the overlap between the lists being fused. CombSUM sums the scores a document receives and CombMNZ multiplies that sum by the number of systems that returned the document \citep{fox1994combination}, so CombMNZ rewards agreement explicitly. \citet{lee1997analyses} showed that fusion helps when the systems agree on relevant documents more than on non-relevant ones, and \citet{montague2001normalization} treated the score-scale problem that rank fusion sidesteps. Rank-biased overlap \citep{webber2010rbo} is the principled measure of agreement between two indefinite rankings; the count of shared documents in Section~\ref{sec:results} is its crudest relative, measured where it had gone to zero. On hybrid lexical and dense retrieval, \citet{luan2021sparse} and \citet{gao2021clear} establish the complementarity a hybrid relies on, and \citet{bruch2023fusion} analyse fusion functions and show when RRF is and is not competitive with a tuned convex combination. This paper is about a failure upstream of that choice, where one of the lists is empty.
+
+Query performance prediction \citep{cronentownsend2002qpp} asks, per query, whether a retriever did well. The ceiling asks a cruder question of the fusion, whether its inputs agreed on anything, and the logging it calls for is the kind \citet{cooper1998monitoring} argued retrieval systems should carry. \citet{kamphuis2020bm25} show how much BM25 scores vary across implementations of the same formula; the FTS5 variant here is one more, and its query grammar, not its scoring, is what failed.
+
+What the ceiling adds to the two obvious diagnostics is cost and placement, not information. Per-retriever row counts need a counter in each retriever's wrapper. A direct overlap count needs both id lists kept past fusion. The maximum fused score is one number the fusion already computes, available wherever the fused list is, including in a log that recorded only scores. The experiments measure how far that one number can stand in for the other two.
+
+\section{The incident}
+\label{sec:incident}
+
+\subsection{The system}
+
+The system is a personal search engine over about 30\,000 to 217\,000 text chunks per corpus, split across five SQLite databases that share one retrieval module. Each query runs two retrievers over the same chunks: an SQLite FTS5 index ranked by BM25 \citep{robertson2009bm25,sqlite_fts5}, and a 768-dimensional embedding index searched by exact cosine. The two ranked lists, each cut at depth $K = 60$, are fused with RRF at $k = 60$.
+
+\subsection{The bug}
+\label{sec:bug}
+
+The keyword query builder was
+\begin{verbatim}
+fq = " ".join(f'"{t}"' for t in tokens)
+\end{verbatim}
+which, for the query \emph{how do I fix the empty feed}, produced
+\begin{verbatim}
+"how" "do" "i" "fix" "the" "empty" "feed"
+\end{verbatim}
+FTS5 reads a sequence of phrases separated by whitespace as an implicit AND \citep[\S 3]{sqlite_fts5}: every phrase must occur in the same row. Rows here were 1\,400-character chunks, so a conversational query of six or seven tokens almost never matched. Two details made the constraint stricter than ``every token present''. The builder's tokeniser kept hyphens, dots and some punctuation inside a token, while FTS5's own tokeniser splits on them, so a token such as \texttt{il-6} became a two-word phrase and therefore an adjacency constraint. And an FTS5 syntax error was caught and ignored, so a malformed query also returned nothing, without a trace. Queries of two or three technical tokens did match, which is why spot checks during development passed, and the dense retriever returns $K$ documents whenever the corpus has that many, so result lists were always full.
+
+\subsection{How it was found, and what the scores had already said}
+\label{sec:found}
+
+On 2026-08-07 a recency-decay feature was tested and rejected because the RRF scores were ``flat near the top'': adjacent ranks differed by about 1.4\%, so even a 5\% age multiplier reordered the list instead of breaking ties. The flatness was written down as a property of fusion. On 2026-08-18, while looking into why the keyword side rarely seemed to matter, I logged the keyword retriever's row counts for ten real queries. All five conversational queries matched zero chunks, and so did a two-word place-name query. Only queries of two or three technical tokens matched anything. The builder had been the same line of code since the system was built, and all four sibling engines carried it. That it had behaved this way on prose queries throughout is an inference from the unchanged code and the replay, since the system keeps no query log.
+
+The fused scores had said so on every replayed query. Over the fused lists of those ten queries (at most 120 documents each at $K = 60$, fewer after per-file deduplication), the maximum score was exactly $1/60 = 0.01\overline{6}$. The values ran $1/60, 1/61, 1/62, \ldots$, with gaps where deduplication had removed a chunk: every fused score was a single term $1/(k+r)$, so no document had been credited by both retrievers. The ``1.4\% flatness'' had been misread. Between consecutive singleton scores, the relative step of the formula is $\bigl(1/(k+r) - 1/(k+r+1)\bigr) / \bigl(1/(k+r)\bigr) = 1/(k+r+1)$: 1.6\% at the top of the list and 1.4\% around rank 10. Two nonempty lists that agreed on every document would show the same relative step at twice the absolute scale. What marked the incident was not the step but the scale: nothing scored above $1/60$.
+
+\subsection{The fix}
+\label{sec:fix}
+
+The fix has two parts, and the second is not cosmetic. Tokens are joined with \verb|OR| and ranked by BM25. A raw OR over all tokens matched about 100\,000 chunks and cost 161\,ms per query, so stopwords and tokens shorter than three characters are dropped first; a typical query then matches about 3\,500 chunks in 2 to 4\,ms. If a query is all stopwords, the raw tokens are used. Section~\ref{sec:results} measures both variants on public data.
+
+Table~\ref{tab:prod} gives the before-and-after counts. The corpus is private, so this is the only production evidence in the paper: counts, timings and overlaps recorded at the time, with no query or document text, kept in \path{results/production-aggregates.json} in the released repository. They can be checked by nobody but the operator, which is why the public reproduction in the next two sections exists. The same builder sat at a different line number in four sibling engines over four other corpora, each inert on prose queries in the same way; the five have since been merged into one module.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrr}
+\toprule
+ & implicit AND & OR + stopword drop \\
+\midrule
+Queries on which the keyword leg returned any row & 4 / 10 & 10 / 10 \\
+Queries with a document found by both legs & 0 / 10 & 10 / 10 \\
+Maximum fused score over the fused list & $1/60 = 0.0167$ & 0.025 -- 0.033 \\
+Keyword leg latency, conversational queries & -- & 2 -- 4\,ms \\
+\bottomrule
+\end{tabular}
+\caption{The keyword retriever before and after the fix: ten real queries, one production shard, $K = k = 60$. The fused list holds at most 120 documents at this depth. The ``before'' latency is omitted because a query that matches nothing is fast; a raw OR without the stopword drop took 161\,ms. On the four ``before'' queries where the keyword retriever returned rows, it returned one to three chunks, none of them in the dense top 60.}
+\label{tab:prod}
+\end{table}
+
+\section{Experimental setup}
+\label{sec:setup}
+
+To check that the effect is a property of the query builder and not of one private corpus, six retrieval conditions were run on six BEIR collections \citep{thakur2021beir} with three encoders.
+
+\paragraph{Collections.} SciFact \citep{wadden2020scifact} (claim sentences against scientific abstracts), NFCorpus \citep{boteva2016nfcorpus} (short nutrition titles against medical documents), ArguAna \citep{wachsmuth2018arguana} (whole arguments against counter-arguments), SciDocs \citep{cohan2020specter} (paper titles against abstracts), FiQA \citep{maia2018fiqa} (finance questions against forum posts) and TREC-COVID \citep{voorhees2020treccovid} (COVID-19 questions against CORD-19 abstracts). Table~\ref{tab:legs} gives their sizes. Data came through \texttt{ir\_datasets} \citep{macavaney2021irdatasets}; only queries with relevance judgements are run. The collections differ in domain, corpus size, document length and relevance style as well as in query length, so contrasts between them are observations, not controlled comparisons.
+
+\paragraph{Encoders.} \texttt{nomic-embed-text-v1.5} \citep{nussbaum2024nomic}, the public release of the production encoder; \texttt{bge-base-en-v1.5} \citep{xiao2023cpack}; and \texttt{e5-base-v2} \citep{wang2022e5}. All three are 768-dimensional, and each is used with the query and document prefixes its model card prescribes (Appendix~\ref{app:run}). Documents are embedded as title and text joined by a space; vectors are normalised and searched by exact cosine.
+
+\paragraph{Keyword retriever.} The builder's tokeniser is the regular expression \verb|[\w$#.@-]+| over the lower-cased query. The buggy builder quotes every token and joins with spaces (implicit AND). The fixed builder drops the 118 stopwords listed in Appendix~\ref{app:run} and every token under three characters, then joins the rest with \verb|OR|, falling back to the raw tokens when nothing survives. A third builder joins every raw token with \verb|OR|. The FTS5 index holds title and text columns with default BM25 weights.
+
+{\sloppy
+\paragraph{Conditions.} \textsc{bm25-and} (the buggy builder), \textsc{bm25-or-raw} (OR over every token), \textsc{bm25-or} (the fix), \textsc{dense}, \textsc{hybrid-and} (dense + buggy keyword, fused by RRF) and \textsc{hybrid-or} (dense + fixed keyword, fused by RRF). Depth $K = 100$ for every retriever and $k = 60$ for fusion, so the ceiling is read in its one-sided form and overlap is also counted directly from the ranks. The 18 collection--encoder pairs give $3\,727 \times 3 \times 2 = 22\,362$ hybrid query runs. The three encoders rerun the same queries, so they are not independent replications.\par}
+
+\paragraph{Diagnostics.} For each hybrid condition the runner records, per query: whether the keyword list was empty, how many documents it held, whether the fused list was at the ceiling, the maximum fused score itself, and how many documents both retrievers returned. These are read from the lists as fused.
+
+\paragraph{Effectiveness.} nDCG@10 and Recall@100 through \texttt{pytrec\_eval} \citep{vangysel2018pytrec}. Before scoring, a document whose id equals the query's id is removed, which is the default of BEIR's evaluator. This touches 1\,298 of ArguAna's 1\,406 queries and 55 of FiQA's 648, and no query elsewhere; FiQA was run with and without the rule and every one of its reported figures is identical, so none of the 55 affected a result. The 108 ArguAna queries whose text is a corpus document under another id are not touched. Differences between conditions are tested per collection--encoder pair with a two-sided paired randomization test over queries (sign flips, $10^5$ trials; \citealp{smucker2007comparison}) and Holm's correction within each family of 18 pairs (six families: two metrics by three comparisons; no correction across families). A difference is called significant at $\alpha = 0.05$ after correction. Per-query scores and the test's output are in \texttt{results/}. Differences quoted in the text are differences of the printed three-decimal values unless a fourth decimal is given.
+
+\paragraph{Hardware.} Every run reported here was made in one Kaggle kernel on an NVIDIA T4 (Appendix~\ref{app:run}). Query times are mean wall-clock per query for the dense search, the keyword search and the fusion, with query encoding excluded. The keyword search and the fusion run on the host's shared CPU, so times compare conditions within a collection and only loosely across collections.
+
+\section{Results}
+\label{sec:results}
+
+Two questions run through this section and are kept apart. Is the keyword list empty, nonempty, or overlapping with the dense list, and does the ceiling say so (Sections~\ref{sec:leg} to~\ref{sec:sweep})? And does the hybrid retrieve better than its parts (Section~\ref{sec:effect})? Every condition for every pair is in Appendix~\ref{app:full}.
+
+\subsection{How often the buggy builder returns nothing}
+\label{sec:leg}
+
+\begin{table}[h]
+\centering
+\small
+\setlength{\tabcolsep}{4pt}
+\begin{tabular}{lrrrrrrr}
+\toprule
+ & & & & \multicolumn{2}{c}{quoted AND} & \multicolumn{2}{c}{OR after the drop} \\
+\cmidrule(lr){5-6}\cmidrule(lr){7-8}
+Collection & docs & queries & tokens & kw empty & at ceiling & kw empty & at ceiling \\
+\midrule
+SciFact & 5\,183 & 300 & 12.6 & 98.0\% & 98.0\% & 0.0\% & 0.0\% \\
+NFCorpus & 3\,633 & 323 & 3.3 & 50.8\% & 51.4--51.7\% & 7.7\% & 7.7--8.7\% \\
+ArguAna & 8\,674 & 1\,406 & 195.1 & 0.0\% & 0.0\% & 0.0\% & 0.0\% \\
+SciDocs & 25\,657 & 1\,000 & 9.4 & 94.2\% & 94.7--94.9\% & 0.0\% & 0.1\% \\
+FiQA & 57\,638 & 648 & 11.1 & 81.8\% & 87.2--88.4\% & 0.0\% & 0.0--0.3\% \\
+TREC-COVID & 171\,332 & 50 & 10.6 & 74.0\% & 88.0--90.0\% & 0.0\% & 0.0\% \\
+\bottomrule
+\end{tabular}
+\caption{The keyword list and the ceiling on six BEIR collections. ``tokens'' is the mean query length in the builder's own tokens. ``kw empty'' is the fraction of queries on which the keyword retriever returned no document; it does not depend on the encoder. ``at ceiling'' is the fraction on which the fused list was at the ceiling, given as the range over the three encoders where they differ.}
+\label{tab:legs}
+\end{table}
+
+The quoted-AND builder matched nothing on 294 of SciFact's 300 claim-length queries, 942 of SciDocs's 1\,000 titles, 530 of FiQA's 648 questions, 37 of TREC-COVID's 50 questions and 164 of NFCorpus's 323 titles (Table~\ref{tab:legs}). Mean query length alone does not order these five rates: NFCorpus has the shortest queries and the lowest rate, but TREC-COVID's questions are about as long as FiQA's and SciDocs's and its rate is lower. Counting only the tokens the fixed builder would keep orders all five (\texttt{results/keyword\_facts.json}): 8.7 content tokens per query on SciFact, 7.3 on SciDocs, 6.2 on FiQA, 5.7 on TREC-COVID and 2.5 on NFCorpus, against empty rates of 98.0, 94.2, 81.8, 74.0 and 50.8\%. That is close to arithmetic. Every quoted token is one more condition a single document must meet; stopwords are met almost everywhere; the content words are the conditions that fail. Ordering by raw token count puts SciDocs fourth of the five; counting content words moves it to second, where its empty rate sits. Five collections are too few to call this a law, and the collections also differ in corpus size, document length and vocabulary.
+
+BM25 with the fixed builder is a usable retriever on every collection (Appendix~\ref{app:full}). After the fix, only NFCorpus has queries that match nothing: 25 title queries (7.7\%), on which no quoted token matches any document, since the raw OR is empty on the same 25. The stopword drop that made the fix cheap in production is cheaper everywhere and costs little: \textsc{bm25-or-raw} is 2.2 to 18 times slower (13.6 against 4.1\,ms on SciFact, 2.6 against 1.2 on NFCorpus, 905 against 52 on ArguAna, whose queries average 195 tokens) and worse at nDCG@10 by 0.001 to 0.010 on five collections. The exception is FiQA, where OR over every token is better by 0.009 nDCG@10 and 0.012 Recall@100, at 5.6 times the cost.
+
+\subsection{Does the ceiling catch an empty keyword list?}
+\label{sec:rowcount}
+
+Always, with two retrievers: an empty keyword list puts the fused maximum at exactly $1/k$ whenever the dense retriever returned anything, so the set of empty-list queries is contained in the set of at-ceiling queries, and across all 22\,362 hybrid query runs the ceiling missed no empty list. On the 294 SciFact queries with an empty keyword list, the per-query rows show that the \textsc{hybrid-and} list is the \textsc{dense} list: the same document count and a maximum score of exactly $1/60$.
+
+Everything the ceiling and the row count disagree on is therefore a ceiling over a nonempty keyword list. There were 176 such query runs, 164 under the buggy builder and 12 under the fixed one, and none on SciFact or ArguAna. Table~\ref{tab:excess} gives the buggy builder's by collection, as a share of the queries on which its keyword list was nonempty.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrr}
+\toprule
+Collection & nonempty keyword lists & of them at the ceiling & share \\
+\midrule
+SciFact & 6 & 0 & 0.0\% \\
+NFCorpus & 159 & 2--3 & 1.3--1.9\% \\
+ArguAna & 1\,406 & 0 & 0.0\% \\
+SciDocs & 58 & 5--7 & 8.6--12.1\% \\
+FiQA & 118 & 35--43 & 29.7--36.4\% \\
+TREC-COVID & 13 & 7--8 & 53.8--61.5\% \\
+\bottomrule
+\end{tabular}
+\caption{Queries on which the buggy builder's keyword list was nonempty and the fused list was nevertheless at the ceiling. The count does not depend on the encoder in the first column; the second and third give the range over the three encoders.}
+\label{tab:excess}
+\end{table}
+
+In 174 of the 176 the two retrievers shared no document. Read as a zero-overlap test, the ceiling was right on every one of them; read as an empty-list alarm, it was wrong; and the row count tells the two readings apart. The other two are the case Section~\ref{sec:ceiling} said $K > k$ leaves open. On one FiQA query for bge and one for e5, under the fixed builder, both retrievers returned 100 documents and shared exactly one, ranked deep enough in both that its fused score did not exceed $1/k$. The ceiling appeared with overlap present. Two in 22\,362 is rare, but it is not zero, and it is why a system that runs at $K > k$ should count shared documents directly.
+
+\begin{figure}[t]
+\centering
+\includegraphics[width=\textwidth]{fig-ceiling-length.pdf}
+\caption{Fraction of hybrid query runs at the ceiling, by the number of documents the keyword retriever returned, pooled over both builders and all three encoders. A hollow marker is a cell with fewer than ten runs; a gap is a cell with none. SciFact and ArguAna sit at zero in every populated cell, under the other lines. Empty keyword lists, at 100\% by construction, are not drawn.}
+\label{fig:length}
+\end{figure}
+
+How often a nonempty keyword list shares nothing with the dense top $K$ depends mostly on how short it is (Figure~\ref{fig:length}). Pooled over every collection except ArguAna, where the keyword list is never disjoint, and over both builders, the fused list was at the ceiling on 137 of the 726 runs in which the keyword list held one to three documents (18.9\%), on 35 of 588 with four to 49 (6.0\%), and on 4 of 6\,636 with 50 or more (0.06\%; those four are two zero-overlap runs and the two FiQA runs above). The buggy builder supplies most of the short lists: 612 of the 726 runs in the first bucket, at the ceiling on 132 of them, against 5 of 114 for the fixed builder.
+
+The short-list rate differs by collection: 0 of 18 on SciFact (5.2k documents), 13 of 330 on NFCorpus (3.6k), 18 of 141 on SciDocs (26k), 90 of 219 on FiQA (58k) and 16 of 18 on TREC-COVID (171k; six distinct queries, each run under three encoders). The four nonzero rates rise with corpus size. SciFact's 0 of 18 is too few runs to place (at NFCorpus's rate, 0 of 18 would occur about half the time), so this is a pattern across four collections that differ in more than size, not a demonstrated size effect. On the three larger corpora, a short exact-match list was disjoint from the dense top 100 on 12.8, 41.1 and 88.9\% of runs (124 of 378 pooled), whether or not the list was any good. The ceiling also appeared over a keyword list of four or more documents on 39 runs, all on FiQA, TREC-COVID and SciDocs, so ``a short list'' is not a safe reading of every such ceiling; the row count is.
+
+\subsection{A keyword list that is never empty and almost never relevant}
+\label{sec:arguana}
+
+ArguAna's queries are whole arguments, 195 tokens on average, and the quoted-AND builder never returned nothing for them: it returned one document for 1\,402 of the 1\,406 queries and two for the other four. The reason is the collection's construction. Every query's text is also a document in the corpus, and a query is the one text guaranteed to contain all of its own tokens. On all 1\,406 queries the AND list held a document whose text equals the query's after whitespace and case normalisation, under the query's own identifier on 1\,298 (at the top of the list on 1\,296) and under another identifier on the remaining 108. A query's own document is not one of its relevant documents, and the AND list held a relevant document for one query in 1\,406.
+
+The ceiling cannot see this. The dense retriever also returns that document in its top 100 on every query for every encoder, so the two retrievers share it, the fused maximum is above $1/k$ on every query, and the ceiling never appears: Table~\ref{tab:legs} shows 0.0\% for every encoder. Fusion with this keyword list changed nothing measurable: \textsc{hybrid-and} and \textsc{dense} agree to every decimal the result files carry in both metrics for all three encoders, which is what a dead retriever looks like from the outside. The ceiling tests for agreement, and a retriever that agrees with the other on one useless document passes it. Per-retriever row counts do not catch it either, since the list is nonempty on every query. What catches it is the distribution of row counts, one document on 99.7\% of queries, which is as much an alarm as zero. ArguAna's construction is unusual, but a corpus that indexes the kind of text it is queried with is not: a search engine over a mailbox, a notes vault or a ticket tracker can receive the text of an indexed item as a query. Whether the self-match is then a failure depends on the task; when finding the source item is the point, it is the answer.
+
+\subsection{Short lists under control}
+\label{sec:sweep}
+
+To measure the ceiling against short nonempty lists under control, the fixed keyword list was capped at its first $n$ documents and fused with the dense top $K$, for $K \in \{60, 100\}$, on every SciFact and NFCorpus query where the keyword retriever returned anything, for bge and nomic (Table~\ref{tab:sweep}). A cap is not a length: a query whose keyword list held fewer than $n$ documents keeps its short list in every cell, so each cell is the ceiling rate under a cap of $n$ over the same 300 and 298 queries.
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{rrrrr}
+\toprule
+ & \multicolumn{2}{c}{SciFact} & \multicolumn{2}{c}{NFCorpus} \\
+$n$ & $K=60$ & $K=100$ & $K=60$ & $K=100$ \\
+\midrule
+1 & 8.7\% & 5.3\% & 15.1\% & 11.1\% \\
+2 & 5.3\% & 1.7\% & 9.1\% & 6.0\% \\
+3 & 2.7\% & 1.0\% & 6.0\% & 3.4\% \\
+5 & 1.3\% & 0.7\% & 3.7\% & 2.0\% \\
+10 & 1.0\% & 0.7\% & 2.3\% & 1.0\% \\
+20 & 1.0\% & 0.0\% & 1.7\% & 1.0\% \\
+50 & 0.3\% & 0.0\% & 1.3\% & 1.0\% \\
+100 & -- & 0.0\% & -- & 1.0\% \\
+\bottomrule
+\end{tabular}
+\caption{Fraction of queries with a nonempty keyword list on which the fused list was at the ceiling when the fixed keyword list is cut to its first $n$ documents and fused with the dense top $K$ (\texttt{bge-base-en-v1.5}; 300 SciFact and 298 NFCorpus queries). In every cell this fraction equals the fraction of queries whose two lists were disjoint, and the fraction at the ceiling with overlap present is zero. The nomic encoder's figures are within 4.4 points of these at $n=1$ and within 1.0 point from $n=3$ on; they are in \texttt{results/*.sweep.json}.}
+\label{tab:sweep}
+\end{table}
+
+Three things hold in every cell for both encoders. The ceiling appeared exactly on the queries where the two lists shared no document: the at-ceiling rate and the disjoint rate are equal to the query. The rate falls fast with the cap. Pooling the two encoders' cells (Table~\ref{tab:sweep} prints bge's) at $K = 60$: a cap of one document leaves the lists disjoint on 8.7 to 15.1\% of queries, a cap of three on 2.7 to 6.7\%, a cap of ten on 0.7 to 2.3\%, and a cap of twenty or more on at most 1.7\%, under 1\% in 11 of the 20 cells at $n \ge 20$ over both depths and both encoders. And a deeper dense list never raises a figure. The $K > k$ leak, a ceiling with overlap hidden at deep ranks, is impossible by arithmetic unless $(n-1)(K-1) \ge k^2$, which among these cells holds only at $K = 100$ with $n \in \{50, 100\}$; in those eight cells, 2\,392 query runs, it did not occur. It did occur twice in the natural FiQA runs above, both with $n = 100$, so the sweep's zero is a property of these two small collections, not of the test. The sweep was not repeated on the four larger collections; the natural row counts in Section~\ref{sec:rowcount} stand in for it there, and they show the short-list rate is several times higher on three of them than these two suggest.
+
+\subsection{Does repairing the keyword retriever improve retrieval?}
+\label{sec:effect}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{bge-base-en-v1.5} & \multicolumn{3}{c}{nomic-embed-text-v1.5} & \multicolumn{3}{c}{e5-base-v2} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+Collection & dense & h-and & h-or & dense & h-and & h-or & dense & h-and & h-or \\
+\midrule
+SciFact & 0.740 & 0.741 & 0.723 & 0.703 & 0.705 & 0.708 & 0.719 & 0.722 & 0.726 \\
+NFCorpus & 0.374 & 0.382 & 0.363 & 0.347 & 0.361$^{*}$ & 0.344 & 0.355 & 0.368$^{*}$ & 0.352 \\
+ArguAna & 0.641 & 0.641 & 0.606$^{*}$ & 0.483 & 0.483 & 0.517$^{*}$ & 0.447 & 0.447 & 0.532$^{*}$ \\
+SciDocs & 0.217 & 0.216 & 0.195$^{*}$ & 0.187 & 0.187 & 0.182 & 0.187 & 0.186 & 0.183 \\
+FiQA & 0.406 & 0.396$^{*}$ & 0.348$^{*}$ & 0.376 & 0.367$^{*}$ & 0.330$^{*}$ & 0.399 & 0.389$^{*}$ & 0.362$^{*}$ \\
+TREC-COVID & 0.779 & 0.744$^{*}$ & 0.763 & 0.823 & 0.784 & 0.769 & 0.696 & 0.669 & 0.714 \\
+\bottomrule
+\end{tabular}
+\caption{nDCG@10 of the dense retriever, the hybrid with the buggy keyword retriever (h-and) and the hybrid with the fixed one (h-or). A star marks a hybrid whose paired difference from the dense retriever of the same encoder is significant at $\alpha = 0.05$ after Holm's correction (two-sided randomization test, $10^5$ sign flips, 18 pairs per family).}
+\label{tab:ndcg}
+\end{table}
+
+\begin{table}[h]
+\centering
+\small
+\begin{tabular}{lrrrrrrrrr}
+\toprule
+ & \multicolumn{3}{c}{bge-base-en-v1.5} & \multicolumn{3}{c}{nomic-embed-text-v1.5} & \multicolumn{3}{c}{e5-base-v2} \\
+\cmidrule(lr){2-4}\cmidrule(lr){5-7}\cmidrule(lr){8-10}
+Collection & dense & h-and & h-or & dense & h-and & h-or & dense & h-and & h-or \\
+\midrule
+SciFact & 0.967 & 0.967 & 0.969 & 0.928 & 0.928 & 0.958 & 0.963 & 0.963 & 0.959 \\
+NFCorpus & 0.337 & 0.341$^{*}$ & 0.337 & 0.298 & 0.303$^{*}$ & 0.309 & 0.319 & 0.323$^{*}$ & 0.328 \\
+ArguAna & 0.993 & 0.993 & 0.991 & 0.980 & 0.980 & 0.984 & 0.949 & 0.949 & 0.981$^{*}$ \\
+SciDocs & 0.496 & 0.495 & 0.469$^{*}$ & 0.404 & 0.404 & 0.409 & 0.421 & 0.421 & 0.425 \\
+FiQA & 0.741 & 0.740 & 0.715$^{*}$ & 0.682 & 0.682 & 0.675 & 0.732 & 0.732 & 0.711 \\
+TREC-COVID & 0.141 & 0.140 & 0.133 & 0.150 & 0.148 & 0.137$^{*}$ & 0.128 & 0.127 & 0.124 \\
+\bottomrule
+\end{tabular}
+\caption{Recall@100, same conditions, layout and star as Table~\ref{tab:ndcg}.}
+\label{tab:recall}
+\end{table}
+
+Not reliably. Repairing the keyword retriever raises overlap: the mean number of documents both retrievers returned rose from at most 4.0 per query (Appendix~\ref{app:full}) to between 19.0 and 43.7 in every collection--encoder pair. Tables~\ref{tab:ndcg} and~\ref{tab:recall} show what that did to effectiveness. Over the 18 pairs, the repaired hybrid is above \textsc{dense} at nDCG@10 in 5 and below it in 13, and the paired test calls 2 of the gains and 5 of the losses significant. At Recall@100 it is above in 9 (one significant; the ninth, NFCorpus with bge, by 0.0006, which the table rounds to a tie) and below in 9 (three significant). The buggy hybrid is above the repaired one at nDCG@10 in 12 (six significant) and below it in 6 (two significant).
+
+The two significant gains over \textsc{dense} are on ArguAna, the one collection where BM25 alone (0.484) is above an encoder at nDCG@10, e5 (0.447), and level with another, nomic (0.483): the repaired hybrid gains 0.085 for e5 and 0.034 for nomic, and loses 0.035 for bge, the encoder BM25 does not match, also significantly. The other three gains are small and not significant (0.005 and 0.007 on SciFact for nomic and e5; 0.018 on TREC-COVID for e5). The largest single loss, and the only collection where every encoder loses significantly, is FiQA, where BM25 is far behind every encoder (0.224 nDCG@10 against 0.376 to 0.406) and the repaired hybrid is 0.037 to 0.058 below \textsc{dense}; TREC-COVID with nomic loses 0.054, not significant on 50 queries.
+
+The buggy hybrid's 12 wins over the repaired one are mostly abstention. When the keyword list is empty, the hybrid is the dense retriever, and the buggy builder's list was empty on most queries of most collections. Over the whole of SciFact, \textsc{hybrid-and} and \textsc{dense} differ by at most 0.003 nDCG@10 and 0.000 Recall@100 as printed (0.0022 and 0.0000 before rounding), all of it from the six queries with a nonempty keyword list, and on SciDocs, with 942 empty lists, by at most 0.001 in each (0.0017 before rounding). Two collections moved more, in opposite directions, and the number of nonempty lists does not predict which: on NFCorpus (159 nonempty of 323) \textsc{hybrid-and} is above \textsc{dense} by 0.008 to 0.014 nDCG@10, and on TREC-COVID (13 nonempty of 50) it is below by 0.027 to 0.039, significant for bge after correction ($p = 0.043$) on a difference those 13 queries carry. In 8 of the 12 the buggy hybrid is not above \textsc{dense} at all: on seven of them its keyword list was empty on 74 to 94\% of queries, on ArguAna with bge it returned the self-match on every query and a second document on four, and the two aggregate metrics are identical to every decimal with and without it; in all eight the repaired list's OR results diluted the top 10. Only on NFCorpus (all three encoders) and SciFact with bge is the buggy hybrid above \textsc{dense} as well, by 0.001 on SciFact and by 0.008 to 0.014 on NFCorpus (significant for nomic and e5), where the AND list was nonempty on half the queries and held exact-match lists of four or more documents on 86 of those 159.
+
+Unweighted RRF treats a weak keyword list and a strong dense list alike, which is one reason \citet{bruch2023fusion} find a tuned convex combination competitive. Whether RRF over BM25 and a given dense encoder helps is a question these runs answer only per pair. A monitor for overlap and activity and a verdict on retrieval effectiveness are different instruments.
+
+\section{What to log}
+\label{sec:log}
+
+Log, per query, each retriever's row count and the maximum fused score. If the maximum sits at $1/k$ (or $1/(k+1)$ for one-based ranks) on more than a few queries, then with per-retriever depth $K \le k$ the retrievers are not agreeing on anything, and at greater depth no document is shared at ranks $r_1, r_2$ with $r_1 r_2 < k^2$. Read the row counts to learn whether one retriever is empty, nearly empty, or retrieving from a different part of the corpus, and at greater depth count shared documents directly. A ceiling over a short nonempty list was common on the larger collections here, so a ceiling is a reason to read the row count, not a verdict.
+
+Look at the distribution of row counts, not only at zero. A retriever that returns one document on nearly every query is as suspect as one that returns none, and if the corpus indexes the kind of text it is queried with (messages, notes, tickets), check whether that one document is the query itself and whether returning it is the task. Test the keyword builder with a conversational sentence, not a two-word term, and treat zero rows for a six-word query as something to explain, since a legitimately selective query can also return nothing. If the fusion scores look ``flat'', compute $1/(k+r+1)$ before concluding anything about fusion.
+
+None of these signals is a verdict on effectiveness. On these collections a keyword retriever that was alive and overlapping made the hybrid worse than the dense retriever alone more often than better (significantly worse in five pairs, significantly better in two), and that question needs relevance judgements, not scores.
+
+\section{Limitations}
+\label{sec:limits}
+
+The production measurements are on ten and fifteen queries over private corpora and are reported as aggregates the reader cannot check; they establish that the failure happened and how it looked, not an effect size, and the claim that the keyword retriever had been inert since the system's first version is an inference from unchanged code. The public reproduction uses six collections and three encoders of one size class (768-dimensional, base-sized) and FTS5's default BM25 weighting of title and text. The three encoders rerun the same queries, so the 18 pairs are not 18 independent samples, and the paired tests are corrected within each family of 18 but not across the six families; corrected over all 108 tests at once, 23 of the 31 differences significant within their families remain so, among them all seven significant comparisons of the repaired hybrid with the dense retriever at nDCG@10. The collections differ in several ways at once, so the orderings reported here (empty rate against content words per query, short-list disjointness across collections of different size) are observations over five or six points, not controlled effects, and the pooled row-count rates mix the two builders, whose short lists arise differently. The truncation sweep covers only the two smallest collections. The exact ceiling statement needs $K \le k$, and the guarantee that an empty list is never missed needs two retrievers; the common $K = 100$, $k = 60$ setting gets the one-sided direction and the direct overlap count instead, and it produced two ceilings with overlap present. The ceiling detects zero overlap; attributing it to an empty list needs the per-retriever row counts, and a retriever that returns one useless document the other retriever also returns, as on ArguAna, passes both the ceiling and a zero-row check. The negative results in Appendix~\ref{app:negative} are negative on one system each.
+
+\section{Conclusion}
+\label{sec:conclusion}
+
+With per-retriever depth $K \le k$, a maximum reciprocal-rank-fusion score of $1/k$ over a result list means no document in it was returned by more than one retriever, and a system that fuses can read that from the scores it already computes. In the incident, the ceiling held on all ten replayed queries, and the unchanged builder implies it had held on prose queries since the first version; it was read twice as a property of fusion. On six BEIR collections the ceiling missed no empty keyword list in 22\,362 runs, as it must with two retrievers; it appeared over a nonempty but disjoint list on 174 runs, mostly short lists on the larger corpora, and twice over lists that shared one document deep in both at $K > k$. It is blind by construction to a retriever that returns a document the other retriever also returns, which ArguAna shows with a keyword list that is never empty and almost never relevant; the distribution of row counts is the check for that case. Repairing the keyword retriever raised overlap in every pair and moved nDCG@10 above the dense retriever alone in 5 of 18, two of them significantly, and below it in 13, five significantly. Whether a retriever is alive and whether fusing it helps are separate questions, and only the first can be answered from the scores.
+
+\section*{Use of AI tools}
+
+The code, the experiment and audit scripts, and the text of this paper were drafted with Claude (Anthropic) running in Claude Code, directed by the author, who operated the production system in which the incident occurred, chose what to measure, ruled on every claim and takes responsibility for all content. Drafts were reviewed by GPT-6 (Astra, Sol and Luna), GPT-6.1 Sol, SWE-2, Gemini 4 Argon, Gemini, Grok 4.7, DeepSeek V4.1 Flash, GPT-5.6, GLM-5.3 Flash, Kimi K3 and Claude Fable 5.1, through Cognition's Devin CLI, Cursor, Kagi and vendor CLIs; every defect a reviewer reported was reproduced or refuted by a script before it changed the paper, and the review records, probes and the audit script that checks every number in the text against the result files are in the repository. Every reference was checked against a primary listing. This work received no funding, and the author declares no competing interests.
+
+\bibliographystyle{plainnat}
+\bibliography{refs}
+
+\appendix
+\section{Two negative results measured beside the broken retriever}
+\label{app:negative}
+
+Both of the following were measured on the production system before the keyword retriever was fixed, with seven to fifteen queries each; both verdicts stand on their own terms, and neither says anything about the techniques in general.
+
+\paragraph{Recency decay.} A multiplicative age penalty on fused scores (floor 0.85, time constant 180 days) changed the top-1 result on 4 of 7 real queries on a notes corpus, and the changes were as often wrong as right; a canonical note unedited for 338 days was demoted under a 13-day-old draft. On a second corpus spanning only 63 days the multiplier varied between 0.956 and 1.000 across every document and changed 0 of 8 top-1 results. The feature was rejected. At the time the sensitivity was attributed to flat fused scores; Section~\ref{sec:found} shows the relative step between consecutive singleton scores is a property of the formula, and two identical nonempty lists would show the same step, so the flatness said nothing about the keyword retriever, and whether decay would behave differently over a fused list with real two-retriever scores was not tested.
+
+\paragraph{A title prefix before embedding.} Prepending \texttt{kind: title} to each chunk before embedding (the stored text and the keyword index unchanged, so the vector was the only variable) and re-embedding one corpus of 3\,046 documents and 30\,734 chunks took 25 minutes. On 15 realistic queries, 13 had an identical top-1, mean top-5 overlap was 80\%, one query improved and one regressed, and the query predicted to benefit most returned an identical, still wrong, top 3. The change was not adopted. This is a heading prefix: neither document expansion by generated queries \citep{nogueira2019doc2query} nor the model-written situating context of \citet{anthropic2024contextual}, and the corpus was a weak test (documents whose title is their opening line). Because the keyword retriever was inert, the A/B measured the vector change alone, which was the intent.
+
+\section{All conditions, all collections}
+\label{app:full}
+
+Tables~\ref{tab:full-bge}, \ref{tab:full-nomic} and~\ref{tab:full-e5} give all six conditions for each encoder. The BM25-only rows do not depend on the encoder and repeat across the three tables. ``kw empty'' is the fraction of queries on which the keyword retriever returned no document; ``at ceiling'' the fraction on which the fused list was at the ceiling; ``shared'' the mean number of documents both retrievers returned. Query times are in \texttt{results/*.json}; the ones the text quotes are in Section~\ref{sec:leg}.
+
+\begin{table}[p]
+\centering
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & shared \\
+\midrule
+SciFact & bm25-and & 0.018 & 0.018 & 98.0\% & -- & -- \\
+SciFact & bm25-or-raw & 0.659 & 0.879 & 0.0\% & -- & -- \\
+SciFact & bm25-or & 0.665 & 0.876 & 0.0\% & -- & -- \\
+SciFact & dense & 0.740 & 0.967 & -- & -- & -- \\
+SciFact & hybrid-and & 0.741 & 0.967 & 98.0\% & 98.0\% & 0.02 \\
+SciFact & hybrid-or & 0.723 & 0.969 & 0.0\% & 0.0\% & 28.9 \\
+\midrule
+NFCorpus & bm25-and & 0.193 & 0.095 & 50.8\% & -- & -- \\
+NFCorpus & bm25-or-raw & 0.304 & 0.232 & 7.7\% & -- & -- \\
+NFCorpus & bm25-or & 0.306 & 0.233 & 7.7\% & -- & -- \\
+NFCorpus & dense & 0.374 & 0.337 & -- & -- & -- \\
+NFCorpus & hybrid-and & 0.382 & 0.341 & 50.8\% & 51.7\% & 4.0 \\
+NFCorpus & hybrid-or & 0.363 & 0.337 & 7.7\% & 8.7\% & 21.3 \\
+\midrule
+ArguAna & bm25-and & 0.001 & 0.001 & 0.0\% & -- & -- \\
+ArguAna & bm25-or-raw & 0.473 & 0.957 & 0.0\% & -- & -- \\
+ArguAna & bm25-or & 0.484 & 0.965 & 0.0\% & -- & -- \\
+ArguAna & dense & 0.641 & 0.993 & -- & -- & -- \\
+ArguAna & hybrid-and & 0.641 & 0.993 & 0.0\% & 0.0\% & 1.0 \\
+ArguAna & hybrid-or & 0.606 & 0.991 & 0.0\% & 0.0\% & 38.6 \\
+\midrule
+SciDocs & bm25-and & 0.003 & 0.002 & 94.2\% & -- & -- \\
+SciDocs & bm25-or-raw & 0.152 & 0.343 & 0.0\% & -- & -- \\
+SciDocs & bm25-or & 0.153 & 0.344 & 0.0\% & -- & -- \\
+SciDocs & dense & 0.217 & 0.496 & -- & -- & -- \\
+SciDocs & hybrid-and & 0.216 & 0.495 & 94.2\% & 94.9\% & 0.13 \\
+SciDocs & hybrid-or & 0.195 & 0.469 & 0.0\% & 0.1\% & 29.3 \\
+\midrule
+FiQA & bm25-and & 0.014 & 0.015 & 81.8\% & -- & -- \\
+FiQA & bm25-or-raw & 0.233 & 0.521 & 0.0\% & -- & -- \\
+FiQA & bm25-or & 0.224 & 0.508 & 0.0\% & -- & -- \\
+FiQA & dense & 0.406 & 0.741 & -- & -- & -- \\
+FiQA & hybrid-and & 0.396 & 0.740 & 81.8\% & 87.2\% & 0.44 \\
+FiQA & hybrid-or & 0.348 & 0.715 & 0.0\% & 0.3\% & 22.1 \\
+\midrule
+TREC-COVID & bm25-and & 0.075 & 0.003 & 74.0\% & -- & -- \\
+TREC-COVID & bm25-or-raw & 0.532 & 0.091 & 0.0\% & -- & -- \\
+TREC-COVID & bm25-or & 0.538 & 0.101 & 0.0\% & -- & -- \\
+TREC-COVID & dense & 0.779 & 0.141 & -- & -- & -- \\
+TREC-COVID & hybrid-and & 0.744 & 0.140 & 74.0\% & 90.0\% & 0.86 \\
+TREC-COVID & hybrid-or & 0.763 & 0.133 & 0.0\% & 0.0\% & 21.6 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{bge-base-en-v1.5}, all conditions.}
+\label{tab:full-bge}
+\end{table}
+
+\begin{table}[p]
+\centering
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & shared \\
+\midrule
+SciFact & bm25-and & 0.018 & 0.018 & 98.0\% & -- & -- \\
+SciFact & bm25-or-raw & 0.659 & 0.879 & 0.0\% & -- & -- \\
+SciFact & bm25-or & 0.665 & 0.876 & 0.0\% & -- & -- \\
+SciFact & dense & 0.703 & 0.928 & -- & -- & -- \\
+SciFact & hybrid-and & 0.705 & 0.928 & 98.0\% & 98.0\% & 0.02 \\
+SciFact & hybrid-or & 0.708 & 0.958 & 0.0\% & 0.0\% & 25.9 \\
+\midrule
+NFCorpus & bm25-and & 0.193 & 0.095 & 50.8\% & -- & -- \\
+NFCorpus & bm25-or-raw & 0.304 & 0.232 & 7.7\% & -- & -- \\
+NFCorpus & bm25-or & 0.306 & 0.233 & 7.7\% & -- & -- \\
+NFCorpus & dense & 0.347 & 0.298 & -- & -- & -- \\
+NFCorpus & hybrid-and & 0.361 & 0.303 & 50.8\% & 51.7\% & 3.7 \\
+NFCorpus & hybrid-or & 0.344 & 0.309 & 7.7\% & 8.4\% & 21.0 \\
+\midrule
+ArguAna & bm25-and & 0.001 & 0.001 & 0.0\% & -- & -- \\
+ArguAna & bm25-or-raw & 0.473 & 0.957 & 0.0\% & -- & -- \\
+ArguAna & bm25-or & 0.484 & 0.965 & 0.0\% & -- & -- \\
+ArguAna & dense & 0.483 & 0.980 & -- & -- & -- \\
+ArguAna & hybrid-and & 0.483 & 0.980 & 0.0\% & 0.0\% & 1.0 \\
+ArguAna & hybrid-or & 0.517 & 0.984 & 0.0\% & 0.0\% & 43.7 \\
+\midrule
+SciDocs & bm25-and & 0.003 & 0.002 & 94.2\% & -- & -- \\
+SciDocs & bm25-or-raw & 0.152 & 0.343 & 0.0\% & -- & -- \\
+SciDocs & bm25-or & 0.153 & 0.344 & 0.0\% & -- & -- \\
+SciDocs & dense & 0.187 & 0.404 & -- & -- & -- \\
+SciDocs & hybrid-and & 0.187 & 0.404 & 94.2\% & 94.8\% & 0.17 \\
+SciDocs & hybrid-or & 0.182 & 0.409 & 0.0\% & 0.1\% & 32.3 \\
+\midrule
+FiQA & bm25-and & 0.014 & 0.015 & 81.8\% & -- & -- \\
+FiQA & bm25-or-raw & 0.233 & 0.521 & 0.0\% & -- & -- \\
+FiQA & bm25-or & 0.224 & 0.508 & 0.0\% & -- & -- \\
+FiQA & dense & 0.376 & 0.682 & -- & -- & -- \\
+FiQA & hybrid-and & 0.367 & 0.682 & 81.8\% & 87.5\% & 0.45 \\
+FiQA & hybrid-or & 0.330 & 0.675 & 0.0\% & 0.0\% & 24.1 \\
+\midrule
+TREC-COVID & bm25-and & 0.075 & 0.003 & 74.0\% & -- & -- \\
+TREC-COVID & bm25-or-raw & 0.532 & 0.091 & 0.0\% & -- & -- \\
+TREC-COVID & bm25-or & 0.538 & 0.101 & 0.0\% & -- & -- \\
+TREC-COVID & dense & 0.823 & 0.150 & -- & -- & -- \\
+TREC-COVID & hybrid-and & 0.784 & 0.148 & 74.0\% & 88.0\% & 0.70 \\
+TREC-COVID & hybrid-or & 0.769 & 0.137 & 0.0\% & 0.0\% & 21.9 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{nomic-embed-text-v1.5}, all conditions.}
+\label{tab:full-nomic}
+\end{table}
+
+\begin{table}[p]
+\centering
+\small
+\begin{tabular}{llrrrrr}
+\toprule
+Collection & Condition & nDCG@10 & R@100 & kw empty & at ceiling & shared \\
+\midrule
+SciFact & bm25-and & 0.018 & 0.018 & 98.0\% & -- & -- \\
+SciFact & bm25-or-raw & 0.659 & 0.879 & 0.0\% & -- & -- \\
+SciFact & bm25-or & 0.665 & 0.876 & 0.0\% & -- & -- \\
+SciFact & dense & 0.719 & 0.963 & -- & -- & -- \\
+SciFact & hybrid-and & 0.722 & 0.963 & 98.0\% & 98.0\% & 0.02 \\
+SciFact & hybrid-or & 0.726 & 0.959 & 0.0\% & 0.0\% & 27.9 \\
+\midrule
+NFCorpus & bm25-and & 0.193 & 0.095 & 50.8\% & -- & -- \\
+NFCorpus & bm25-or-raw & 0.304 & 0.232 & 7.7\% & -- & -- \\
+NFCorpus & bm25-or & 0.306 & 0.233 & 7.7\% & -- & -- \\
+NFCorpus & dense & 0.355 & 0.319 & -- & -- & -- \\
+NFCorpus & hybrid-and & 0.368 & 0.323 & 50.8\% & 51.4\% & 3.8 \\
+NFCorpus & hybrid-or & 0.352 & 0.328 & 7.7\% & 7.7\% & 20.6 \\
+\midrule
+ArguAna & bm25-and & 0.001 & 0.001 & 0.0\% & -- & -- \\
+ArguAna & bm25-or-raw & 0.473 & 0.957 & 0.0\% & -- & -- \\
+ArguAna & bm25-or & 0.484 & 0.965 & 0.0\% & -- & -- \\
+ArguAna & dense & 0.447 & 0.949 & -- & -- & -- \\
+ArguAna & hybrid-and & 0.447 & 0.949 & 0.0\% & 0.0\% & 1.0 \\
+ArguAna & hybrid-or & 0.532 & 0.981 & 0.0\% & 0.0\% & 33.5 \\
+\midrule
+SciDocs & bm25-and & 0.003 & 0.002 & 94.2\% & -- & -- \\
+SciDocs & bm25-or-raw & 0.152 & 0.343 & 0.0\% & -- & -- \\
+SciDocs & bm25-or & 0.153 & 0.344 & 0.0\% & -- & -- \\
+SciDocs & dense & 0.187 & 0.421 & -- & -- & -- \\
+SciDocs & hybrid-and & 0.186 & 0.421 & 94.2\% & 94.7\% & 0.15 \\
+SciDocs & hybrid-or & 0.183 & 0.425 & 0.0\% & 0.1\% & 31.7 \\
+\midrule
+FiQA & bm25-and & 0.014 & 0.015 & 81.8\% & -- & -- \\
+FiQA & bm25-or-raw & 0.233 & 0.521 & 0.0\% & -- & -- \\
+FiQA & bm25-or & 0.224 & 0.508 & 0.0\% & -- & -- \\
+FiQA & dense & 0.399 & 0.732 & -- & -- & -- \\
+FiQA & hybrid-and & 0.389 & 0.732 & 81.8\% & 88.4\% & 0.36 \\
+FiQA & hybrid-or & 0.362 & 0.711 & 0.0\% & 0.3\% & 19.0 \\
+\midrule
+TREC-COVID & bm25-and & 0.075 & 0.003 & 74.0\% & -- & -- \\
+TREC-COVID & bm25-or-raw & 0.532 & 0.091 & 0.0\% & -- & -- \\
+TREC-COVID & bm25-or & 0.538 & 0.101 & 0.0\% & -- & -- \\
+TREC-COVID & dense & 0.696 & 0.128 & -- & -- & -- \\
+TREC-COVID & hybrid-and & 0.669 & 0.127 & 74.0\% & 90.0\% & 0.78 \\
+TREC-COVID & hybrid-or & 0.714 & 0.124 & 0.0\% & 0.0\% & 19.6 \\
+\bottomrule
+\end{tabular}
+\caption{\texttt{e5-base-v2}, all conditions.}
+\label{tab:full-e5}
+\end{table}
+
+\section{Run details}
+\label{app:run}
+
+The SciFact and NFCorpus runs were first made on CPU (12-core x86-64, PyTorch CPU wheels), about an hour per collection and encoder for document embedding. All 18 collection--encoder pairs were then run in a Kaggle kernel on one NVIDIA T4 (\path{kaggle/run.py} in the repository, which clones the runner at a pinned commit and records package versions and the device in a manifest): PyTorch 2.11 with CUDA 12.8, \texttt{transformers} 4.49, \texttt{sentence-transformers} 3.4.1, \texttt{ir\_datasets} 0.6.3. At the same batch size, the GPU runs of the four pairs of the earlier version of this paper (SciFact and NFCorpus with bge and nomic) reproduced the CPU results to every digit the result files carry for nDCG@10 and Recall@100; every result file in the repository is from the Kaggle runs, and the CPU runs figure only as that reproduction check. Documents were embedded in batches of 64, except with nomic, which accepts 8\,192 tokens where the other two encoders stop at 512 and ran out of GPU memory at that size on the three largest collections, so every nomic run reported here used batches of 8. Batch size reaches the vectors only through padding and the order of floating-point operations; between batch 64 and batch 8 the nomic runs on SciFact were identical and on NFCorpus one query's fused maximum score changed in the fourth decimal, with no printed figure affected. \texttt{nomic-embed-text-v1.5} needs a 4.x \texttt{transformers} because its remote model code calls a method removed in 5.0; the runner pins it below 4.50. The encoder's document prefix is applied where its model card prescribes one (\texttt{search\_document:} for nomic, \texttt{passage:} for e5, none for bge); queries carry the query prefix (\texttt{search\_query:} for nomic; \texttt{query:} for e5; \texttt{Represent this sentence for searching relevant passages:} for bge, which its card asks for on retrieval queries and on nothing else). The FTS5 index is built atomically. ArguAna, SciDocs and TREC-COVID have a single test split in BEIR and are loaded as \texttt{beir/arguana}, \texttt{beir/scidocs} and \texttt{beir/trec-covid}.
+
+The fixed builder's stoplist, 118 words: \emph{a an the and or but if then than that this these those of in on at to for from by with about into over under after before is are was were be been being am do does did doing have has had having i me my mine we us our you your he she it its they them their as not no nor so such can could should would will shall may might must what which who whom whose when where why how all any both each few more most other some only own same too very just dont don t s re ve ll m d get got make made want need know think see look}.
+
+Per-query diagnostics are in \texttt{results/*.perquery.jsonl} and per-query effectiveness scores in \texttt{results/*.pereval.jsonl}; \texttt{scripts/keyword\_facts.py} computes the encoder-free keyword facts, \texttt{scripts/tables.py}, \texttt{scripts/natural\_lengths.py} and \texttt{scripts/figure.py} the tables, per-query counts and Figure~\ref{fig:length}, \texttt{scripts/significance.py} the paired tests, and the audit script \texttt{review/orrery-audit.py} checks every number in this paper against the result files.
+
+\end{document}

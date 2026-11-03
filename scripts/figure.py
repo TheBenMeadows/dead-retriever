@@ -3,9 +3,9 @@
 # requires-python = ">=3.11"
 # dependencies = ["matplotlib>=3.8"]
 # ///
-"""Figure 1: the ceiling's firing rate against the keyword leg's natural row
-count, one line per collection, from results/*.perquery.jsonl (both hybrid
-conditions, all encoders). Writes paper/fig-ceiling-length.pdf and .png.
+"""Figure 1: the fraction of runs at the ceiling against the keyword retriever's
+natural row count, one line per collection, from results/*.perquery.jsonl (both
+hybrid conditions, all encoders). Writes paper/fig-ceiling-length.pdf and .png.
 
     scripts/figure.py
 """
@@ -64,7 +64,7 @@ def main():
                     markeredgecolor=color, markeredgewidth=1.2, zorder=4)
     ax.set_xticks(x)
     ax.set_xticklabels([l.replace("--", "–") for l in LABELS])
-    ax.set_xlabel("documents returned by the keyword leg")
+    ax.set_xlabel("documents returned by the keyword retriever")
     ax.set_ylabel("queries at the ceiling (%)")
     ax.set_ylim(-3, 103)
     ax.set_yticks([0, 25, 50, 75, 100])
