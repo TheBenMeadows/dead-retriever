@@ -1,0 +1,26 @@
+The four targeted fixes hold in their revised statements. Several local corrections remain before posting.
+
+- **Health overclaim:** The abstract now says, “This paper shows that the fused scores reveal when the two lists did not overlap.” The Introduction adds, “It does not say that either list is empty.” The Conclusion ends, “The scores can say whether two retrievers agreed on anything, the row counts can say what that means, and whether fusing a retriever helps is a question for relevance judgements.” These distinguish overlap, activity and effectiveness, within the stated depth restriction.
+- **Rounding:** “It is worse at nDCG@10 by 0.001 to 0.011 on five collections.” Correct: ArguAna’s printed difference is \(0.484-0.473=0.011\). “The exception is FiQA, where OR over every token is better by 0.009 nDCG@10 and 0.013 Recall@100, at 5.6 times the cost.” Correct: \(0.233-0.224=0.009\), and \(0.521-0.508=0.013\).
+- **Runs rather than lists:** “In 174 further query runs the keyword list was nonempty but shared nothing with the dense list, mostly a short list on a large corpus.” The counting unit is now right.
+- **Nonempty counterpart:** Section 2 now explicitly says, “So with two retrievers, as long as the other retriever returned something, the test has no false negatives for an empty list”. Correct; the contribution list and Limitations carry that condition too.
+
+Remaining findings, ranked by expected impact:
+
+1. **Related work conflates different meanings of agreement.** “The ceiling is a degenerate case of that idea, read at the point where agreement is zero” does not follow from Nuray and Can. Agreement between an input ranking and fusion-derived relevance estimates is different from overlap between the input lists; disjoint inputs still contribute documents to the fused output. Replace the comparison with: “Nuray and Can estimate retrieval-system effectiveness using fusion-derived relevance estimates. The ceiling measures overlap between the input lists.”
+
+   The other five citations need two distinctions. Aslam and Montague support metasearch modelling, and Chen et al. support BEIR hybrid evaluation. Wang et al. support BM25 interpolation on MS MARCO/TREC DL; remove Wang from the joint BEIR attribution in Sections 5.5 and 7. Kumaran and Allan support query reduction, and Bendersky and Croft support key-concept identification and weighting; neither should carry the specific claim about conjunctive-query failure. Replace that opening with: “Verbose-query retrieval has motivated query reduction and key-concept identification [the two citations].”
+
+2. **A new sentence infers the second list’s length from the first.** Section 2: “The row counts say whether the keyword list was empty, short or full, and a ceiling over a full list means two full lists that share nothing.” Even with \(K\le k\), a full keyword list and a short, disjoint dense list produce the ceiling. Rewrite: “The row counts say whether each list was empty, short or full. With \(K\le k\), a ceiling and two row counts of \(K\) identify two full, disjoint lists.”
+
+3. **The Results opener points to an appendix that no longer contains everything.** “Every condition for every collection--encoder pair is in Appendix A; the tables in this section hold what the text discusses.” Dense and hybrid effectiveness now reside in Tables 5 and 6; Appendix A supplies BM25 effectiveness and shared-document counts. Rewrite: “The tables in this section and Appendix A together cover every condition and collection–encoder pair.”
+
+4. **Appendix B broadens the CPU reproduction claim.** “The SciFact and NFCorpus runs were first made on CPU, and the GPU runs reproduced them to every digit…” drops the previous restriction to four bge/nomic pairs and matching batch sizes. Rewrite: “For SciFact and NFCorpus with bge and nomic, GPU runs at the same batch size reproduced the earlier CPU nDCG@10 and Recall@100 values to every reported digit.”
+
+5. **Two local antecedents need repair.** In the abstract, “In two runs under the repaired builder, the lists shared one document at deep ranks, the case \(K>k\) leaves open.” Rewrite: “In two at-ceiling runs under the repaired builder, the lists nevertheless shared one document at deep ranks.” In Section 3.2, “The fused scores had said so on every replayed query.” Rewrite: “On every replayed query, the fused scores showed zero overlap.” This removes the backward reference to the preceding account of empty lists and inferred historical behaviour.
+
+All explicit Table and Section references resolve to surviving labels; the Results opener is the semantic exception above. I found no numerical claim orphaned by the table consolidation. The moved definitions precede their uses. The contribution list and “What to log” remain consistent with the derivation.
+
+The title promises the conditional zero-overlap result the paper delivers; the abstract supplies the RRF formula and \(K\le k\) restriction without requiring another title qualification.
+
+A cs.IR reader could finish this version without another structural rewrite. I would post after these local corrections. The single highest-value change is replacing the Nuray–Can “degenerate case” claim: it currently misidentifies what the cited method measures and therefore misstates the paper’s relationship to prior work.

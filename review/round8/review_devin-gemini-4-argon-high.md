@@ -1,0 +1,26 @@
+### 1. Round 2 fixes (hunk by hunk)
+
+Every round 2 edit holds against the tables, the JSON files, and the surrounding text; none introduced an error.
+
+- **Title:** Adding "in Reciprocal Rank Fusion" names the scoring rule that defines $k$ and $1/k$.
+- **Abstract:** Adding "and a dense list that was never empty" matches the condition in Section 2 and Section 5.2 (`dense` returned 100 documents on every query). Replacing "In 174 further query runs..." with "Across both builders, the fused list was also at the ceiling in 174 query runs where the keyword list was nonempty..." reconciles the count with Section 5.2 (164 runs under `bm25-and` plus 10 disjoint runs under `bm25-or`, plus the 2 deep-overlap FiQA runs under `bm25-or`, totaling the 176 nonempty at-ceiling runs in `natural_lengths.json`).
+- **Section 1 (Introduction):** "The fused scores show something narrower than health: whether the two lists overlapped at all" connects directly to the preceding paragraph's contrast between a selective query and a broken retriever. Changing `"RRF scores are flat"` to `"flat near the top"` matches the quote in Section 3.2.
+- **Section 2 (The ceiling):** "...so a nonempty list at the ceiling has maximum exactly $1/k$" states the domain ($\max_d s(d) \le 1/k$ on a nonempty list) without an ambiguous "then". Replacing "a ceiling over a full list means two full lists that share nothing" with "at $K \le k$, the ceiling says the lists shared no document, whatever their lengths" removes the contradiction with the two $K = 100 > k = 60$ FiQA runs in Section 5.2. Splitting the "because" clause gives the rank-0 claim its own justification ($r_1 r_2 = 0 < k^2$) separate from the $K \le k$ bound ($r_1 r_2 \le (K-1)^2 < k^2$).
+- **Section 3 (The incident):** In Section 3.1, "Two details made things worse than ``every token present'' suggests" fits both the hyphen-tokenisation rule and the swallowed syntax errors. In Section 3.2, "The fused scores had shown zero overlap on every replayed query" and "Flatness is a property of RRF; it was the wrong thing to look at" repair the two loose antecedents; reordering the description of the fix puts the stopword drop before the `OR` join and names Sections 4 and 5 explicitly.
+- **Section 4 (Experimental setup):** "The runner computes them from the two retriever lists and the fused list" matches what each diagnostic requires (row counts and shared-document counts need the input lists; maximum score and ceiling status need the fused list).
+- **Section 5 (Results opener and 5.1):** The Section 5 opener now points to Tables 5 and 6 for dense and hybrid effectiveness and Appendix A (Tables 7 and 8) for keyword-only runs, latency, and shared-document counts. In Section 5.1, "Outside ArguAna, which Section 5.3 treats separately" makes "the five rates" in the next sentence exact, "content tokens" matches the definition in Section 4, and "saves time on every collection and costs little effectiveness" matches Table 7 (`bm25-or` vs `bm25-or-raw`).
+- **Section 5.2:** Adding "whenever the other list is nonempty" and "of SciFact's 300" agrees with Section 2 and `keyword_facts.json` (`294 / 300`). Naming "Among lists of one to three documents, the at-ceiling share is highest on SciDocs, FiQA and TREC-COVID, the three largest collections (Table 3, right)" detaches the subject from the preceding sentence's builder split and returns to the pooled column in Table 3 (`18/141`, `90/219`, `16/18`).
+- **Section 5.5:** Citation of Table 8 (`tab:shared`), enclosing the whole second paragraph inside `\sloppy ... \par`, folding the NFCorpus `159` and `86` counts into the sentence about NFCorpus gains, and distinguishing Wang et al. (2021) on MS MARCO from Chen et al. (2022) on BEIR all agree with the tables and `refs.bib`.
+- **Sections 7, 8, 9, Appendix B:** The narrowed descriptions of Nuray and Can (2006), Kumaran and Allan (2007), and Bendersky and Croft (2008), the pointer to Section 4 for the stopword rule, "The production measurements used here" in Section 8, the $K \le k$ and nonempty-dense-list qualifiers in Section 9, and the restriction to the four bge/nomic CPU pairs in Appendix B all hold.
+
+### 2. The title
+
+"The $1/k$ Ceiling in Reciprocal Rank Fusion: A Zero-Overlap Test for Hybrid Retrieval" promises the exact mathematical property derived in Section 2 and tested as a zero-overlap diagnostic for hybrid retrieval in Sections 3 through 6.
+
+### 3. Page one (Abstract and Introduction)
+
+None.
+
+### 4. Post it?
+
+Yes, post it. A different version of this paper could have been written as a general study of score-only diagnostics and fusion weighting across rank- and score-based fusion rules (RRF across a grid of $(K, k)$ and per-retriever weights, alongside convex score combinations and learned sparse retrievers such as SPLADE), rather than centering on one FTS5 query-builder bug and unweighted RRF at $k = 60$. That approach would have gained a broader operational prescription — showing how overlap diagnostics behave when RRF weights are tuned to prevent a weak lexical leg from hurting nDCG@10 on collections like FiQA — at the cost of the self-contained arithmetic identity $\max_d s(d) \le 1/k \iff \text{zero overlap}$ at $K \le k$, which requires unweighted RRF, and the concrete failure analysis that makes this short paper immediate to practitioners.
