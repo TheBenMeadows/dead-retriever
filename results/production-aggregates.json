@@ -1,5 +1,5 @@
 {
- "_comment": "Aggregate measurements from the private production system, recorded at the time in the operator's engineering notes. No query text, document text or titles. These are the only production figures the paper uses; they are reproducible by nobody but the operator and are labelled as such in the paper.",
+ "_comment": "Aggregate measurements from the private production system, recorded at the time in the operator's engineering notes. No query text, document text or titles. The paper's other production statements (the place-name query and the sizes of the four nonempty keyword lists) appear in its text only. All are reproducible by nobody but the operator and are labelled as such in the paper.",
  "system": {
   "chunk_chars": 1400,
   "rrf_k": 60,
