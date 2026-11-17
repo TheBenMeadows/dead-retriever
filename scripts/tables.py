@@ -84,8 +84,9 @@ def effect_table(metric, sig=None, alpha=0.05):
 
 
 def full_table(enc):
-    """Appendix: all six conditions for one encoder (no timing column; the
-    SciFact and NFCorpus runs were timed on a different machine)."""
+    """Appendix: all six conditions for one encoder, without a timing column.
+    Every run file carries mean_query_ms from the one Kaggle kernel; the
+    paper's ms/query column comes from the bge runs and is not printed here."""
     for coll in COLL:
         d = summary(coll, enc)["conditions"]
         for c in ORDER:

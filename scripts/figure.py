@@ -46,7 +46,9 @@ def main():
             c = counts[(coll, bucket(r["n_keyword"]))]
             c[1] += 1
             c[0] += int(r["at_ceiling"])
-    plt.rcParams.update({"font.family": "serif", "font.size": 9, "axes.linewidth": 0.6})
+    # fonttype 42 embeds TrueType fonts; matplotlib's default (3) is rejected by some venues.
+    plt.rcParams.update({"font.family": "serif", "font.size": 9, "axes.linewidth": 0.6,
+                         "pdf.fonttype": 42, "ps.fonttype": 42})
     fig, ax = plt.subplots(figsize=(5.2, 3.0))
     x = list(range(len(BUCKETS)))
     for (coll, name), color in zip(COLL, COLOR):
