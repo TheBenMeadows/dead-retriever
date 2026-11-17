@@ -28,6 +28,8 @@ extension, same import name, published as wheels) is installed in its place.
 | `ndcg10.md` | nDCG@10 table, conditions by run |
 | `manifest.json` | commit, package versions, GPU name, dataset sizes, per-run status and timing |
 | `logs/<tag>.log` | full stdout/stderr of each `beir_run.py` invocation |
+| `sweep/<tag>.sweep.json` | with `--sweep`: `scripts/sweep_live_list.py` on that run's embedding cache (on Kaggle with no arguments, `KAGGLE_ARGS` in `run.py` selects SciFact and NFCorpus with bge and nomic plus the sweep) |
+| `logs/<tag>.sweep.log` | with `--sweep`: stdout/stderr of each `sweep_live_list.py` invocation |
 
 `<tag>` is the dataset id and the model id with `/` replaced by `_`, joined by `__` (`beir_scifact_test__BAAI_bge-base-en-v1.5`, `beir_arguana__intfloat_e5-base-v2`), the same naming `results/` uses.
 To compare against the committed numbers, use

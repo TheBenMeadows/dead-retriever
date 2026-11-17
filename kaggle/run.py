@@ -8,9 +8,15 @@ Kaggle runs this file with no arguments. It
   3. downloads each BEIR dataset through ir_datasets,
   4. runs scripts/beir_run.py (all six conditions) for every dataset x encoder,
   5. writes <tag>.json and <tag>.perquery.jsonl per run into <out>/results/,
-     plus manifest.json, ndcg10.md and one log per run into <out>/.
+     plus manifest.json, ndcg10.md and one log per run into <out>/,
+  6. with --sweep, runs scripts/sweep_live_list.py on each completed run's
+     embedding cache and writes <tag>.sweep.json into <out>/sweep/.
 
 <out> is /kaggle/working on Kaggle, ./kaggle-out elsewhere.
+
+On Kaggle with no arguments, KAGGLE_ARGS is used: SciFact and NFCorpus with
+bge and nomic, plus the sweep, to recompute the four results/*.sweep.json
+files from GPU embeddings.
 
 A wall-clock deadline (--deadline-minutes, default 690) is counted from the
 start of this script and handed to every beir_run.py invocation, which checks
@@ -43,6 +49,8 @@ MODELS = ("BAAI/bge-base-en-v1.5", "nomic-ai/nomic-embed-text-v1.5", "intfloat/e
 MODEL_BATCH = {"nomic-ai/nomic-embed-text-v1.5": 8}
 CONDITIONS = ("bm25_and", "bm25_or_raw", "bm25_or", "dense", "hybrid_and", "hybrid_or")
 ON_KAGGLE = Path("/kaggle/working").is_dir()
+KAGGLE_ARGS = ["--datasets", "beir/scifact/test", "beir/nfcorpus/test",
+               "--models", "BAAI/bge-base-en-v1.5", "nomic-ai/nomic-embed-text-v1.5", "--sweep"]
 TORCH_CPU_INDEX = "https://download.pytorch.org/whl/cpu"
 
 
@@ -163,6 +171,17 @@ def download(dataset, env):
     return {**counts, "bytes_on_disk": size}
 
 
+def run_logged(cmd, cwd, env, log_path):
+    """Run cmd, echoing its combined output to stdout and to log_path; return the exit code."""
+    with log_path.open("w") as lf:
+        proc = subprocess.Popen([str(c) for c in cmd], cwd=cwd, env=env, text=True,
+                                stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
+        for line in proc.stdout:
+            sys.stdout.write(line)
+            lf.write(line)
+        return proc.wait()
+
+
 def tag(dataset, model):
     return dataset.replace("/", "_") + "__" + model.replace("/", "_")
 
@@ -200,7 +219,9 @@ def main():
                     help="clone, caches and datasets (not part of the kernel output)")
     ap.add_argument("--out", default="/kaggle/working" if ON_KAGGLE else "kaggle-out")
     ap.add_argument("--skip-install", action="store_true")
-    a = ap.parse_args()
+    ap.add_argument("--sweep", action="store_true",
+                    help="after each completed run, run sweep_live_list.py on its embedding cache")
+    a = ap.parse_args(KAGGLE_ARGS if ON_KAGGLE and len(sys.argv) == 1 else None)
 
     datasets = a.datasets or (DATASETS[:1] if a.smoke else DATASETS)
     models = a.models or (MODELS[:1] if a.smoke else MODELS)
@@ -216,7 +237,7 @@ def main():
 
     manifest = {"repo": REPO_URL, "commit": None, "smoke": a.smoke, "datasets": list(datasets),
                 "models": list(models), "limit_queries": limit, "deadline_minutes": a.deadline_minutes,
-                "batch": a.batch, "model_batch": MODEL_BATCH, "started_unix": T0, "on_kaggle": ON_KAGGLE, "environment": None,
+                "batch": a.batch, "model_batch": MODEL_BATCH, "sweep": a.sweep, "started_unix": T0, "on_kaggle": ON_KAGGLE, "environment": None,
                 "downloads": {}, "runs": []}
     manifest_path = out / "manifest.json"
 
@@ -262,13 +283,7 @@ def main():
             t1 = time.time()
             log_path = out / "logs" / f"{rec['tag']}.log"
             log(f"run {ds} x {model} (log: {log_path})")
-            with log_path.open("w") as lf:
-                proc = subprocess.Popen([str(c) for c in cmd], cwd=repo_dir, env=env, text=True,
-                                        stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1)
-                for line in proc.stdout:
-                    sys.stdout.write(line)
-                    lf.write(line)
-                rc = proc.wait()
+            rc = run_logged(cmd, repo_dir, env, log_path)
             rec["returncode"], rec["seconds"] = rc, time.time() - t1
             summary = out / "results" / f"{rec['tag']}.json"
             if rc == 0 and summary.exists():
@@ -281,6 +296,19 @@ def main():
                 rec["status"], failed = "failed", True
             log(f"{rec['tag']}: {rec['status']} in {rec['seconds']:.0f}s")
             save()
+            if a.sweep and rec["status"] == "complete":
+                cmd = [sys.executable, repo_dir / "scripts" / "sweep_live_list.py", "--dataset", ds,
+                       "--model", model, "--cache", work / "cache", "--out", out / "sweep"]
+                t1 = time.time()
+                log_path = out / "logs" / f"{rec['tag']}.sweep.log"
+                log(f"sweep {ds} x {model} (log: {log_path})")
+                rc = run_logged(cmd, repo_dir, env, log_path)
+                rec["sweep_returncode"], rec["sweep_seconds"] = rc, time.time() - t1
+                ok = rc == 0 and (out / "sweep" / f"{rec['tag']}.sweep.json").exists()
+                rec["sweep_status"] = "complete" if ok else "failed"
+                failed = failed or not ok
+                log(f"{rec['tag']}: sweep {rec['sweep_status']} in {rec['sweep_seconds']:.0f}s")
+                save()
 
     table = ndcg_table(manifest["runs"])
     (out / "ndcg10.md").write_text(table)
